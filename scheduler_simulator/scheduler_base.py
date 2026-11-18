@@ -15,7 +15,7 @@ class SchedulerBase(ABC):
 
     @abstractmethod
     def tick(self, current_time: float) -> float:
-        """ Executa the scheduler's logic for a single time tick and return the time passed in this tick."""
+        """Return a positive, finite elapsed duration; idle ticks must also record idle time."""
         pass
 
     @abstractmethod

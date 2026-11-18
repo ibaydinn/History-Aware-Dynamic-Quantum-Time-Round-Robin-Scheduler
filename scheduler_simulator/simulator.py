@@ -1,3 +1,5 @@
+from math import isfinite
+
 from .scheduler_base import SchedulerBase
 from .simulator_task_generator import SimulatorTaskGenerator
 from .task_definition import TaskDefinition
@@ -60,9 +62,11 @@ class Simulator:
         # Execute the scheduler's logic for a single time tick
         passed_time_in_tick = self.scheduler.tick(current_time)
 
-        if passed_time_in_tick == 0:
-            # If no time has passed, it means the scheduler is idle. We can increment the current time by a small value (e.g., 1) to avoid an infinite loop.
-            passed_time_in_tick = 1
+        if (isinstance(passed_time_in_tick, bool)
+                or not isinstance(passed_time_in_tick, (int, float))
+                or passed_time_in_tick <= 0
+                or (isinstance(passed_time_in_tick, float) and not isfinite(passed_time_in_tick))):
+            raise ValueError("Scheduler tick must return a positive, finite elapsed duration.")
 
         # Update the current time based on the time passed in this tick
         current_time += passed_time_in_tick

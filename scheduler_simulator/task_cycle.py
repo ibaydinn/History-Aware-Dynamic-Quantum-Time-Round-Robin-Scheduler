@@ -30,6 +30,12 @@ class TaskCycle:
         return task_cycle
 
     def execute(self, current_time: int, duration: int) -> int:
+        if isinstance(duration, bool) or not isinstance(duration, int) or duration <= 0:
+            raise ValueError("Execution duration must be a positive integer.")
+        if self.is_completed():
+            raise ValueError("Cannot execute a completed task cycle.")
+        if self.remaining_burst_time < 0:
+            raise ValueError("Task cycle has not been initialized with a valid burst time.")
         # Execute the task cycle for the given duration.
         # If duration is greater than the remaining burst time,
         # Return the passed time in here.
@@ -45,10 +51,6 @@ class TaskCycle:
             self.end_time = current_time + self.remaining_burst_time
             passed_time_in_here = self.remaining_burst_time
             self.remaining_burst_time = 0
-            # If there's a callback for completion, call it
-            if self.on_complete_callback is not None:
-                # This way task generator notifies the scheduler that this task cycle has completed.
-                self.on_complete_callback(self)
         else:
             # Task Cycle does not complete
             self.remaining_burst_time -= duration
@@ -56,6 +58,10 @@ class TaskCycle:
 
         # Record this execution instance
         self.exec_timeline.append((current_time, current_time + passed_time_in_here))
+
+        # Notify observers only after all completion state has been recorded.
+        if self.is_completed() and self.on_complete_callback is not None:
+            self.on_complete_callback(self)
         
         return passed_time_in_here
 
