@@ -38,6 +38,10 @@ class SchedulerBase(ABC):
         """Return the list of completed task cycles."""
         return self.completed_task_cycles
 
+    def get_configuration(self) -> dict:
+        """Return JSON-compatible parameters needed to reproduce this scheduler."""
+        return {}
+
     def get_idle_times(self) -> list[tuple[int, int]]:
         """Return the list of idle times."""
         return self.idle_times

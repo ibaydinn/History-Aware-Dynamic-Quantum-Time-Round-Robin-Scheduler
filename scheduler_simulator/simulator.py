@@ -3,6 +3,7 @@ from math import isfinite
 from .scheduler_base import SchedulerBase
 from .simulator_task_generator import SimulatorTaskGenerator
 from .task_definition import TaskDefinition
+from .simulation_results import build_simulation_results
 
 class Simulator:
     def __init__(self):
@@ -69,11 +70,8 @@ class Simulator:
             raise ValueError("Scheduler tick must return a positive, finite elapsed duration.")
 
         # Update the current time based on the time passed in this tick
-        current_time += passed_time_in_tick
+        return current_time + passed_time_in_tick
 
-        return current_time
-
-    def get_results(self):
-        task_cycles = list(self.scheduler.get_completed_task_cycles()) if self.scheduler else []
-        idle_times = list(self.scheduler.get_idle_times()) if self.scheduler else []
-        return task_cycles, idle_times
+    def get_results(self) -> dict:
+        """Return a detached snapshot for JSON storage, visualization, and metrics."""
+        return build_simulation_results(self)

@@ -63,3 +63,6 @@ class RoundRobinScheduler(SchedulerBase):
     def remain_task_number(self) -> int:
         return (len(self.ready_que) + len(self.new_tasks_added)
                 + int(self.pending_requeue is not None))
+
+    def get_configuration(self) -> dict:
+        return {"time_quantum": self.time_quantum}
