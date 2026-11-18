@@ -25,7 +25,7 @@ def build_simulation_results(simulator) -> dict:
     return deepcopy({
         "task_input_hash": None if generator is None else calculate_task_input_hash(definitions),
         "scheduler": None if scheduler is None else {
-            "name": scheduler.name,
+            "name": scheduler.get_name(),
             "configuration": scheduler.get_configuration(),
         },
         "task_definitions": definitions,

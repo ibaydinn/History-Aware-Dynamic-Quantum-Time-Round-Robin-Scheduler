@@ -13,12 +13,12 @@ not a generated output, and is not ignored by Git.
   Execution bars retain brief hover tooltips; no detail paragraph is shown.
 - **Full run**: click the overview to move the visible window.
 - **Export SVG**: download the current timeline window and overview as a standalone
-  vector image, including scheduler name, configuration, and selected time range.
+  vector image, including scheduler display name and selected time range.
   The exported background is transparent, with dark text, light grid lines, and
   a fixed palette suitable for white/light paper backgrounds, independent of the viewer theme.
   Task labels have a left margin and execution bars have softly rounded corners.
 
-The summary displays the scheduler name and configuration instead of task/cycle counts.
+The summary displays the name returned by the scheduler’s `get_name()` method.
 
 Axis labels are integers; source timestamps in details are preserved.
 
@@ -53,8 +53,7 @@ starts and deadlines share a line with both labels.
 Open `results_viewer.html` in a browser (keep `results_viewer.js` beside it).
 Click **Load metrics JSONs** and select one or more saved `calculate_metrics(results)`
 reports, such as `simulation_metrics.json`. Loading more files adds runs to the
-comparison. Each run has a consistent color; scheduler configuration appears
-alongside its name. Use × to remove a run, or **Clear all** to start again.
+comparison. Each run has a consistent color; the scheduler’s `get_name()` result is used directly as its label. Use × to remove a run, or **Clear all** to start again.
 
 - **Direct values** shows six separate charts for context switches, average
   turnaround, response, waiting, missed-deadline count, and average deadline miss
@@ -74,7 +73,7 @@ with the missed-deadline count. No per-task or per-cycle graphs are shown.
 This viewer works offline without a server or dependencies and does not upload files.
 
 Result plots use colors without repeated scheduler names. The shared legend shows
-full names and configurations, wrapping long labels. Hover a bar or row color
+full display names, wrapping long labels. Hover a bar or row color
 marker to identify its run; color markers also identify zero and N/A values.
 
 ### Export comparison charts
@@ -90,3 +89,7 @@ values and input-comparison notices. Full scheduler names wrap in the legend;
 names are not repeated on bars. The background is transparent, with dark text
 for white/light paper backgrounds. PNG uses up to 2× resolution, capped at 8192
 pixels per dimension and 16 million pixels; SVG stays vector at any size.
+
+Both viewers display `scheduler.name` directly; configuration is retained in JSON
+for reproducibility but is not automatically appended to labels. Regenerate saved
+results and metrics to use updated scheduler names.

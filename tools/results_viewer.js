@@ -28,10 +28,7 @@ function parseReport(report, filename) {
   if (overall.deadline_miss_count > overall.cycle_count) throw Error('Deadline miss count exceeds cycle count.');
   const scheduler = report.scheduler;
   const name = typeof scheduler?.name === 'string' && scheduler.name.trim() ? scheduler.name : filename.replace(/\.json$/i, '');
-  const configuration = scheduler?.configuration;
-  const settings = configuration && typeof configuration === 'object' && !Array.isArray(configuration)
-    ? Object.entries(configuration).map(([k,v]) => `${k}=${JSON.stringify(v)}`).join(', ') : '';
-  return {overall, label:name + (settings ? ` (${settings})` : ''), filename,
+  return {overall, label:name, filename,
     hash:typeof report.task_input_hash === 'string' && report.task_input_hash ? report.task_input_hash : null};
 }
 // Expose the pure comparison rules to Node's built-in test runner.

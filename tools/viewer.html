@@ -75,10 +75,8 @@ function loadData(candidate,label){
  total=marks.concat(data.idle_intervals).reduce((end,x)=>Math.max(end,x.end_time),0);extent=Math.max(1,Math.ceil(deadlines.reduce((end,d)=>Math.max(end,d.time),total)));
  Object.assign(zoom,{min:1,max:extent,step:1,value:Math.min(60,extent),disabled:total===0});
  Object.assign(pan,{min:0,max:extent,step:1,value:0,disabled:total===0});
- const configuration=data.scheduler?.configuration||{};
- const settings=Object.entries(configuration).map(([key,value])=>`${key} = ${JSON.stringify(value)}`).join(' · ');
  document.getElementById('summary').textContent=data.scheduler
-  ? `${data.scheduler.name||'Scheduler'}${settings?' · '+settings:''}` : 'Load a simulation JSON file';
+  ? data.scheduler.name||'Scheduler' : 'Load a simulation JSON file';
  document.getElementById('export-svg').disabled=total===0;
  document.getElementById('export-png').disabled=total===0;
  document.getElementById('error').textContent='';draw();

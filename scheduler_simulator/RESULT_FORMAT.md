@@ -25,3 +25,8 @@ To verify a saved file, recompute with
 `calculate_task_input_hash(result["task_definitions"])` from
 `scheduler_simulator.simulation_results` and compare it with `task_input_hash`.
 This identifies matching workloads, not matching simulator versions or authenticity.
+
+`scheduler.name` comes from the required `SchedulerBase.get_name()` method. Each
+scheduler implements its own display name, for example `Round Robin (q=2)`.
+Viewers use this name directly; `configuration` remains separate reproducibility
+data and is not automatically added to the displayed name.

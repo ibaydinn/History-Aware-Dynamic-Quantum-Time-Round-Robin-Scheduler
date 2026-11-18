@@ -2,11 +2,14 @@ from abc import ABC, abstractmethod
 from .task_cycle import TaskCycle
 
 class SchedulerBase(ABC):
-    name = "BaseScheduler"
-
     def __init__(self):
         self.completed_task_cycles : list[TaskCycle] = []
         self.idle_times : list[tuple[int, int]] = []  # List of tuples (start_time, end_time) for idle periods
+
+    @abstractmethod
+    def get_name(self) -> str:
+        """Return this scheduler's display name for reports and viewers."""
+        pass
 
     @abstractmethod
     def add_task_to_ready_queue(self, task_instance: TaskCycle | list[TaskCycle]) -> None:
