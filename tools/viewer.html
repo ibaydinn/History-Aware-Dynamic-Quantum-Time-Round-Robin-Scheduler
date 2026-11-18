@@ -7,8 +7,9 @@
 <style>
 :root{color-scheme:light dark;--miss:#c43d3d;--bg:#fff;--fg:#20242b;--muted:#e8ebef;--idle:#d8d8d8;--border:#d4d9df;--series1:#4386cd;--series2:#dd9551;--series3:#65a97b;--series4:#a17cc8;--series5:#cd7889;--series6:#64a5aa}
 @media(prefers-color-scheme:dark){:root{--miss:#ff8585;--bg:#181b20;--fg:#e7ebf0;--muted:#303640;--idle:#555555;--border:#414955;--series1:#6baceb;--series2:#e6ac72;--series3:#84c59a;--series4:#bea0e2;--series5:#e19aaa;--series6:#8dc5ca}}
-*{box-sizing:border-box}body{margin:0;padding:24px;background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif}main{max-width:1400px;margin:auto;display:grid;gap:18px}h1{font-size:24px;font-weight:500;margin:0}p{margin:0}.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px}label{display:grid;gap:8px;min-width:0}input[type=range]{width:100%;margin:0;min-height:28px;accent-color:var(--series1)}button{padding:10px 16px;font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:8px;cursor:pointer}#error:empty{display:none}svg{display:block;width:100%;color:var(--fg)}svg text{fill:var(--fg);font:13px system-ui,sans-serif}.detail{min-height:2.6em;line-height:1.6;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.hint{font-size:13px;line-height:1.5}.mark{cursor:pointer}.mark:focus{outline:2px solid var(--fg)}#summary{overflow-wrap:anywhere}@media(max-width:560px){body{padding:14px}.controls{grid-template-columns:1fr;gap:12px}}
+*{box-sizing:border-box}body{margin:0;padding:24px;background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif}main{max-width:1400px;margin:auto;display:grid;gap:18px}h1{font-size:24px;font-weight:500;margin:0}p{margin:0}.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px}label{display:grid;gap:8px;min-width:0}input[type=range]{width:100%;margin:0;min-height:28px;accent-color:var(--series1)}button{padding:10px 16px;font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:8px;cursor:pointer}#error:empty{display:none}svg{display:block;width:100%;color:var(--fg)}svg text{fill:var(--fg);font:13px system-ui,sans-serif}.hint{font-size:13px;line-height:1.5}.mark{cursor:pointer}.mark:focus{outline:2px solid var(--fg)}#summary{overflow-wrap:anywhere}@media(max-width:560px){body{padding:14px}.controls{grid-template-columns:1fr;gap:12px}}
 button[aria-pressed="true"]{background:var(--muted);border-color:var(--fg)}
+.legend summary{cursor:pointer;width:fit-content}.legend p{margin-top:8px}.legend .miss{color:var(--miss);font-weight:600}
 .marker-controls{display:flex;flex-wrap:wrap;gap:8px}
 svg text.marker-label{font-size:11px;font-weight:600}
 </style>
@@ -28,8 +29,14 @@ svg text.marker-label{font-size:11px;font-weight:600}
 <button id="toggle-deadlines" type="button" aria-pressed="true">Deadlines: on</button>
 </div>
 <svg id="chart" role="img" aria-label="Task execution intervals and full-run overview"></svg>
-<p id="detail" class="detail" aria-live="polite"></p>
-<p class="hint">Adjust visible duration to zoom; move position to pan. Click an interval to inspect. Click the full-run overview to move the window. Cycle numbering starts at zero. sN marks expected arrival; dN marks deadline (red with ! when missed). Use the marker buttons to show or hide each; exports follow the current view. SVG export uses a transparent background and dark text for papers.</p>
+<details class="legend">
+<summary>Marker legend</summary>
+<p class="hint"><strong>s0, s1, …</strong> — expected cycle start (scheduled arrival).<br>
+<strong>d0, d1, …</strong> — cycle deadline.<br>
+<strong class="miss">!</strong> — deadline missed; its label is red.<br>
+Cycle numbering starts at zero. Coincident markers share a label, such as d0 / s1.</p>
+</details>
+<p class="hint">Adjust visible duration to zoom; move position to pan. Click the full-run overview to move the window. Use the marker buttons to show or hide each; exports follow the current view. SVG export uses a transparent background and dark text for papers.</p>
 <script id="results" type="application/json">null</script>
 </main>
 <script>
@@ -68,7 +75,6 @@ function loadData(candidate,label){
  total=marks.concat(data.idle_intervals).reduce((end,x)=>Math.max(end,x.end_time),0);extent=Math.max(1,Math.ceil(deadlines.reduce((end,d)=>Math.max(end,d.time),total)));
  Object.assign(zoom,{min:1,max:extent,step:1,value:Math.min(60,extent),disabled:total===0});
  Object.assign(pan,{min:0,max:extent,step:1,value:0,disabled:total===0});
- selected=null;
  const configuration=data.scheduler?.configuration||{};
  const settings=Object.entries(configuration).map(([key,value])=>`${key} = ${JSON.stringify(value)}`).join(' · ');
  document.getElementById('summary').textContent=data.scheduler
@@ -77,13 +83,12 @@ function loadData(candidate,label){
  document.getElementById('export-png').disabled=total===0;
  document.getElementById('error').textContent='';draw();
 }
-const ns='http://www.w3.org/2000/svg';let visible=[],selected=null,geometry={};
+const ns='http://www.w3.org/2000/svg';let visible=[],geometry={};
 const fmt=x=>Number(x.toFixed(3)).toString();
 // Keep the initial palette; extend it without cycling through the same six colors.
 const color=i=>i<6 ? `var(--series${i+1})`
  : `hsl(${((i*137.508)%360).toFixed(3)}, ${55+(i%3)*8}%, ${62+(i%2)*8}%)`;
 function node(tag,attrs,text,parent=svg){const n=document.createElementNS(ns,tag);for(const [key,value] of Object.entries(attrs))n.setAttribute(key,String(value));if(text!==undefined)n.textContent=text;parent.appendChild(n);return n;}
-function choose(index){const m=visible[index];selected=m||null;document.getElementById('detail').textContent=m?`${m.task} · cycle ${m.cycle} · execution ${fmt(m.start_time)}–${fmt(m.end_time)} · duration ${fmt(m.end_time-m.start_time)} · arrival ${m.arrival} · first start ${m.cycleStart} · completion ${m.cycleEnd}`:'No execution intervals in this time range.';}
 function draw(){
 const width=Math.max(260,root.clientWidth),left=Math.min(190,width*.32),right=width-16,plot=right-left;
 const span=Math.max(1,Math.round(+zoom.value));zoom.value=span;pan.max=Math.max(0,extent-span);pan.value=Math.round(Math.min(+pan.value,+pan.max));const start=+pan.value,stop=start+span;
@@ -95,8 +100,8 @@ const tickStep=Math.max(1,Math.ceil(span/ticks));
 for(let t=start;t<=stop;t+=tickStep){const px=x(t);node('line',{x1:px,x2:px,y1:12,y2:axis,stroke:'var(--border)'});node('text',{x:px,y:axis+20,'text-anchor':t===start?'start':t===stop?'end':'middle'},String(t));}
 [...tasks,'Idle'].forEach((name,i)=>{const limit=Math.max(4,Math.floor((left-32)/8));const label=node('text',{x:16,y:37+i*48},name.length>limit?name.slice(0,limit-1)+'…':name);node('title',{},name,label);});
 visible=marks.filter(m=>m.end_time>start&&m.start_time<stop).sort((a,b)=>a.start_time-b.start_time);
-visible.forEach((m,i)=>{const row=tasks.indexOf(m.task),xx=x(Math.max(start,m.start_time)),ww=x(Math.min(stop,m.end_time))-xx;
-const rect=node('rect',{x:xx,y:18+row*48,width:ww,height:28,rx:9,fill:color(row),class:'mark'});node('title',{},`${m.task} · cycle ${m.cycle} · ${m.start_time}–${m.end_time}`,rect);rect.addEventListener('click',()=>choose(i));
+visible.forEach(m=>{const row=tasks.indexOf(m.task),xx=x(Math.max(start,m.start_time)),ww=x(Math.min(stop,m.end_time))-xx;
+const rect=node('rect',{x:xx,y:18+row*48,width:ww,height:28,rx:9,fill:color(row)});node('title',{},`${m.task} · cycle ${m.cycle} · ${m.start_time}–${m.end_time}`,rect);
 if(ww>42)node('text',{x:xx+ww/2,y:37+row*48,'text-anchor':'middle','pointer-events':'none'},`c${m.cycle}`);
 });
 for(const m of data.idle_intervals){
@@ -134,7 +139,6 @@ node('text',{x:16,y:overview+16},'Full run');
 for(const m of marks)node('rect',{x:left+m.start_time/extent*plot,y:overview+tasks.indexOf(m.task)*9,width:(m.end_time-m.start_time)/extent*plot,height:7,fill:color(tasks.indexOf(m.task)),'pointer-events':'none'});
 node('rect',{x:left+start/extent*plot,y:overview-3,width:span/extent*plot,height:Math.max(20,tasks.length*9)+6,fill:'none',stroke:'var(--fg)','pointer-events':'none'});
 const hit=node('rect',{x:left,y:overview-6,width:plot,height:Math.max(26,tasks.length*9)+12,fill:'transparent',class:'mark'});hit.addEventListener('click',event=>{const bounds=svg.getBoundingClientRect(),localX=(event.clientX-bounds.left)*width/bounds.width;pan.value=Math.round(Math.max(0,Math.min(+pan.max,(localX-left)/plot*extent-span/2)));draw();});
-choose(Math.max(0,visible.indexOf(selected)));
 }
 for(const kind of ['starts','deadlines']){
  const button=document.getElementById(`toggle-${kind}`);

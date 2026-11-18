@@ -1,5 +1,6 @@
 """Metrics use expected arrival time; no eligibility adjustment is applied."""
 
+from copy import deepcopy
 from math import isclose, isfinite
 
 
@@ -133,6 +134,8 @@ def calculate_metrics(results: dict) -> dict:
         elif current[2] != previous[2]:
             switches += 1
     return {
+        "scheduler": deepcopy(results.get("scheduler")),
+        "task_input_hash": results.get("task_input_hash"),
         "overall": {"cycle_count": count, "context_switch_count": switches,
                     **_averages(totals, count), "deadline_miss_count": missed_count,
                     "average_deadline_miss_time": miss_total / missed_count if missed_count else 0},

@@ -61,3 +61,8 @@ Each cycle includes `deadline`, `deadline_missed`, and `deadline_miss_time`.
 Task definitions must be present for every completed task.
 The viewer shows dashed deadline markers labeled d0, d1, etc.; red markers
 with ! indicate misses. Markers are included in SVG and PNG exports.
+
+Reports also preserve `scheduler` (name and configuration) and `task_input_hash`
+from the simulation results for comparisons. Missing metadata is represented by
+`null`. Open `tools/results_viewer.html` to load multiple saved reports and compare
+overall values or percentage improvement against a selected baseline.
