@@ -12,6 +12,10 @@ class SchedulerBase(ABC):
         pass
 
     @abstractmethod
+    def get_configuration(self) -> dict:
+        pass
+
+    @abstractmethod
     def add_task_to_ready_queue(self, task_instance: TaskCycle | list[TaskCycle]) -> None:
         """Add a task cycle to the scheduler's ready queue.w"""
         pass
@@ -40,10 +44,6 @@ class SchedulerBase(ABC):
     def get_completed_task_cycles(self) -> list[TaskCycle]:
         """Return the list of completed task cycles."""
         return self.completed_task_cycles
-
-    def get_configuration(self) -> dict:
-        """Return JSON-compatible parameters needed to reproduce this scheduler."""
-        return {}
 
     def get_idle_times(self) -> list[tuple[int, int]]:
         """Return the list of idle times."""
