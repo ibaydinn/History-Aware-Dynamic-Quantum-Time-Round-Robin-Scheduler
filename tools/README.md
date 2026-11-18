@@ -93,3 +93,8 @@ pixels per dimension and 16 million pixels; SVG stays vector at any size.
 Both viewers display `scheduler.name` directly; configuration is retained in JSON
 for reproducibility but is not automatically appended to labels. Regenerate saved
 results and metrics to use updated scheduler names.
+
+Both viewers offer **Export background: Transparent / White**. Transparent is
+the default. White adds an opaque background behind the entire export, including
+the legend and headers. This applies to SVG and PNG, including individual and
+combined result charts. The on-screen theme is unchanged.

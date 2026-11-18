@@ -1,32 +1,281 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scheduler results</title>
-<style>
-:root{color-scheme:light dark;--bg:#fff;--fg:#20242b;--muted:#647080;--border:#d4d9df;--panel:#f6f8fa}
-@media(prefers-color-scheme:dark){:root{--bg:#181b20;--fg:#e7ebf0;--muted:#acb6c4;--border:#414955;--panel:#22272e}}
-*{box-sizing:border-box}body{margin:0;padding:28px;background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif}main{max-width:1400px;margin:auto;display:grid;gap:20px}h1{font-size:26px;font-weight:550;margin:0}h2{font-size:17px;margin:0 0 8px}p{margin:0;line-height:1.5}button,select{font:inherit;padding:9px 13px;color:var(--fg);background:var(--bg);border:1px solid var(--border);border-radius:8px}button{cursor:pointer}button:disabled{opacity:.5;cursor:default}button[aria-pressed=true]{background:var(--panel);border-color:var(--fg)}.toolbar,.modes{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.hint{color:var(--muted);font-size:13px}#error{color:#df5555;white-space:pre-line}#error:empty,#notice:empty{display:none}#notice{padding:12px;border:1px solid var(--border);border-radius:8px}#runs{display:flex;flex-wrap:wrap;gap:10px}.run{display:flex;gap:9px;align-items:center;border:1px solid var(--border);border-radius:9px;padding:10px;max-width:100%}.run span{min-width:0;overflow-wrap:anywhere}.swatch{flex-shrink:0;width:13px;height:13px;border-radius:4px}.run button{padding:3px 8px}#charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.card{min-width:0;border:1px solid var(--border);border-radius:12px;padding:18px}.card svg{display:block;width:100%;height:auto}svg text{fill:var(--fg);font:12px system-ui,sans-serif}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:right;padding:12px;border-bottom:1px solid var(--border);white-space:nowrap}th:first-child,td:first-child{text-align:left}caption{text-align:left;font-weight:600;margin-bottom:10px}#empty{padding:60px 20px;text-align:center;background:var(--panel);border-radius:12px}[hidden]{display:none!important}@media(max-width:800px){#charts{grid-template-columns:1fr}body{padding:16px}}
-.card-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}.card-actions label{margin-right:auto}.card-actions button{padding:5px 9px;font-size:13px}
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Scheduler results</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #fff;
+            --fg: #20242b;
+            --muted: #647080;
+            --border: #d4d9df;
+            --panel: #f6f8fa
+        }
+
+        @media(prefers-color-scheme:dark) {
+            :root {
+                --bg: #181b20;
+                --fg: #e7ebf0;
+                --muted: #acb6c4;
+                --border: #414955;
+                --panel: #22272e
+            }
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            padding: 28px;
+            background: var(--bg);
+            color: var(--fg);
+            font: 15px system-ui, sans-serif
+        }
+
+        main {
+            max-width: 1400px;
+            margin: auto;
+            display: grid;
+            gap: 20px
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 550;
+            margin: 0
+        }
+
+        h2 {
+            font-size: 17px;
+            margin: 0 0 8px
+        }
+
+        p {
+            margin: 0;
+            line-height: 1.5
+        }
+
+        button,
+        select {
+            font: inherit;
+            padding: 9px 13px;
+            color: var(--fg);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px
+        }
+
+        button {
+            cursor: pointer
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: default
+        }
+
+        button[aria-pressed=true] {
+            background: var(--panel);
+            border-color: var(--fg)
+        }
+
+        .toolbar,
+        .modes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        #error {
+            color: #df5555;
+            white-space: pre-line
+        }
+
+        #error:empty,
+        #notice:empty {
+            display: none
+        }
+
+        #notice {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px
+        }
+
+        #runs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px
+        }
+
+        .run {
+            display: flex;
+            gap: 9px;
+            align-items: center;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 10px;
+            max-width: 100%
+        }
+
+        .run span {
+            min-width: 0;
+            overflow-wrap: anywhere
+        }
+
+        .swatch {
+            flex-shrink: 0;
+            width: 13px;
+            height: 13px;
+            border-radius: 4px
+        }
+
+        .run button {
+            padding: 3px 8px
+        }
+
+        #charts {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px
+        }
+
+        .card {
+            min-width: 0;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px
+        }
+
+        .card svg {
+            display: block;
+            width: 100%;
+            height: auto
+        }
+
+        svg text {
+            fill: var(--fg);
+            font: 12px system-ui, sans-serif
+        }
+
+        .table-wrap {
+            overflow: auto
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 13px
+        }
+
+        th,
+        td {
+            text-align: right;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap
+        }
+
+        th:first-child,
+        td:first-child {
+            text-align: left
+        }
+
+        caption {
+            text-align: left;
+            font-weight: 600;
+            margin-bottom: 10px
+        }
+
+        #empty {
+            padding: 60px 20px;
+            text-align: center;
+            background: var(--panel);
+            border-radius: 12px
+        }
+
+        [hidden] {
+            display: none !important
+        }
+
+        @media(max-width:800px) {
+            #charts {
+                grid-template-columns: 1fr
+            }
+
+            body {
+                padding: 16px
+            }
+        }
+
+        .card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px
+        }
+
+        .card-actions label {
+            margin-right: auto
+        }
+
+        .card-actions button {
+            padding: 5px 9px;
+            font-size: 13px
+        }
+    </style>
 </head>
-<body><main>
-<h1>Scheduler results</h1>
-<p class="hint">Compare overall metrics across scheduler runs. Load the JSON reports produced by calculate_metrics.</p>
-<div class="toolbar"><button id="load" type="button">Load metrics JSONs</button><button id="clear" type="button" disabled>Clear all</button><input id="files" type="file" accept=".json,application/json" multiple hidden></div>
-<p id="error" role="alert"></p>
-<div class="modes" role="group" aria-label="Comparison mode"><button id="direct" type="button" aria-pressed="true">Direct values</button><button id="relative" type="button" aria-pressed="false">Improvement ±%</button><label id="baseline-label" hidden>Baseline <select id="baseline" aria-label="Baseline scheduler"></select></label></div>
-<p id="explanation" class="hint"></p><p id="notice" role="status"></p>
-<div id="runs" aria-label="Loaded schedulers"></div>
-<div id="empty">Load one or more metrics JSON files to begin.</div>
-<div class="toolbar" aria-label="Export charts">
-<button id="select-all" type="button">Select all</button><button id="select-none" type="button">Select none</button>
-<label>Export layout <select id="export-layout"><option value="combined">One image</option><option value="separate">Separate files</option></select></label>
-<button id="export-svg" type="button" disabled>Export selected SVG</button><button id="export-png" type="button" disabled>Export selected PNG</button>
-<span id="export-status" class="hint" role="status"></span>
-</div>
-<div id="charts"></div><div class="table-wrap"><table id="values" hidden></table></div>
-</main>
-<script src="results_viewer.js"></script>
-</body></html>
+
+<body>
+    <main>
+        <h1>Scheduler results</h1>
+        <p class="hint">Compare overall metrics across scheduler runs. Load the JSON reports produced by
+            calculate_metrics.</p>
+        <div class="toolbar"><button id="load" type="button">Load metrics JSONs</button><button id="clear" type="button"
+                disabled>Clear all</button><input id="files" type="file" accept=".json,application/json" multiple
+                hidden></div>
+        <p id="error" role="alert"></p>
+        <div class="modes" role="group" aria-label="Comparison mode"><button id="direct" type="button"
+                aria-pressed="true">Direct values</button><button id="relative" type="button"
+                aria-pressed="false">Improvement ±%</button><label id="baseline-label" hidden>Baseline <select
+                    id="baseline" aria-label="Baseline scheduler"></select></label></div>
+        <p id="explanation" class="hint"></p>
+        <p id="notice" role="status"></p>
+        <div id="runs" aria-label="Loaded schedulers"></div>
+        <div id="empty">Load one or more metrics JSON files to begin.</div>
+        <div class="toolbar" aria-label="Export charts">
+            <button id="select-all" type="button">Select all</button><button id="select-none" type="button">Select
+                none</button>
+            <label>Export layout <select id="export-layout">
+                    <option value="combined">One image</option>
+                    <option value="separate">Separate files</option>
+                </select></label>
+            <label class="export-background">Export background <select id="export-background">
+                    <option value="transparent">Transparent</option>
+                    <option value="white">White</option>
+                </select></label>
+            <button id="export-svg" type="button" disabled>Export selected SVG</button><button id="export-png"
+                type="button" disabled>Export selected PNG</button>
+            <span id="export-status" class="hint" role="status"></span>
+        </div>
+        <div id="charts"></div>
+        <div class="table-wrap">
+            <table id="values" hidden></table>
+        </div>
+    </main>
+    <script src="results_viewer.js"></script>
+</body>
+
+</html>
