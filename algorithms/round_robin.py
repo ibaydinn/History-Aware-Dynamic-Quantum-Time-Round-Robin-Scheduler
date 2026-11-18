@@ -6,7 +6,10 @@ class RoundRobinScheduler(SchedulerBase):
 
     def __init__(self, time_quantum: int = 10) -> None:
         super().__init__()
+        self.ready_que: list[TaskCycle] = []
         self.time_quantum = time_quantum
+        self.new_tasks_added : list[TaskCycle] = []  # Track newly added tasks in the current tick
+        self.pending_requeue: TaskCycle | None = None
 
     @property
     def time_quantum(self) -> int:
@@ -20,11 +23,21 @@ class RoundRobinScheduler(SchedulerBase):
 
     def add_task_to_ready_queue(self, task_instance: TaskCycle | list[TaskCycle]) -> None:
         if isinstance(task_instance, list):
-            self.ready_que.extend(task_instance)
+            self.new_tasks_added.extend(task_instance)
         else:
-            self.ready_que.append(task_instance)
+            self.new_tasks_added.append(task_instance)
 
     def tick(self, current_time: int) -> int:
+        # Add newly added tasks to the ready queue
+        if self.new_tasks_added:
+            self.ready_que.extend(self.new_tasks_added)
+            self.new_tasks_added.clear()
+
+        # Arrivals during the previous quantum precede its unfinished task.
+        if self.pending_requeue is not None:
+            self.ready_que.append(self.pending_requeue)
+            self.pending_requeue = None
+
         # Get first task from the ready queue (FIFO)
         selected_task = self.ready_que.pop(0) if self.ready_que else None
 
@@ -34,7 +47,7 @@ class RoundRobinScheduler(SchedulerBase):
             if selected_task.is_completed():
                 self.completed_task_cycles.append(selected_task)
             else:
-                self.ready_que.append(selected_task)
+                self.pending_requeue = selected_task
 
             return passed_time
 
@@ -43,3 +56,10 @@ class RoundRobinScheduler(SchedulerBase):
         
     def reset(self) -> None:
         super().reset()
+        self.ready_que = []
+        self.new_tasks_added = []
+        self.pending_requeue = None
+
+    def remain_task_number(self) -> int:
+        return (len(self.ready_que) + len(self.new_tasks_added)
+                + int(self.pending_requeue is not None))

@@ -5,7 +5,6 @@ class SchedulerBase(ABC):
     name = "BaseScheduler"
 
     def __init__(self):
-        self.ready_que : list[TaskCycle] = []
         self.completed_task_cycles : list[TaskCycle] = []
         self.idle_times : list[tuple[int, int]] = []  # List of tuples (start_time, end_time) for idle periods
 
@@ -22,13 +21,13 @@ class SchedulerBase(ABC):
     @abstractmethod
     def reset(self) -> None:
         """Reset the scheduler's internal state."""
-        self.ready_que = []
         self.completed_task_cycles = []
         self.idle_times = []
 
+    @abstractmethod
     def remain_task_number(self) -> int:
-        """Return the number of remaining task cycles in the scheduler's ready queue."""
-        return len(self.ready_que)
+        """Return the number of tasks remaining in the scheduler's ready queue."""
+        pass
 
     def pass_idle_time(self, current_time: int):
         idle_time_duration = 1  # Define how long the scheduler should be idle
