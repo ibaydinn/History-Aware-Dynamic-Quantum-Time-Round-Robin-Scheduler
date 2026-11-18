@@ -50,3 +50,14 @@ python3 -m metrics outputs/simulation_results.json --json
 Both commands use the same calculator. The input must contain completed cycles
 with valid, non-overlapping single-CPU execution intervals. Cycle and interval
 list order does not affect the calculations. Times use the simulation's units.
+
+Deadline: expected cycle arrival + period. For period zero, use expected arrival
++ requested `burst_time` (not actual execution duration). Completion exactly at
+the deadline is on time; the final cycle also has a deadline.
+
+Metrics include `deadline_miss_count` and `average_deadline_miss_time` overall
+and per task. The average includes only missed cycles and is zero if none miss.
+Each cycle includes `deadline`, `deadline_missed`, and `deadline_miss_time`.
+Task definitions must be present for every completed task.
+The viewer shows dashed deadline markers labeled d0, d1, etc.; red markers
+with ! indicate misses. Markers are included in SVG and PNG exports.

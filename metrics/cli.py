@@ -29,16 +29,21 @@ def main(argv=None):
     print(f"Context switches: {overall['context_switch_count']} (cycle changes and cycle/idle transitions)")
     for name in ("turnaround_time", "response_time", "waiting_time"):
         print(f"Average {name.replace('_', ' ')}: {_format(overall['average_' + name])}")
+    print(f"Deadlines missed: {overall['deadline_miss_count']}")
+    print(f"Average deadline miss time (missed cycles): {_format(overall['average_deadline_miss_time'])}")
     print("\nPer task (mean times, in simulation units):")
     for item in report["per_task"]:
         print(f"  {item['task_name']}: cycles={item['cycle_count']}, "
               f"turnaround={_format(item['average_turnaround_time'])}, "
               f"response={_format(item['average_response_time'])}, "
-              f"waiting={_format(item['average_waiting_time'])}")
+              f"waiting={_format(item['average_waiting_time'])}, "
+              f"deadlines missed={item['deadline_miss_count']}, "
+              f"average deadline miss time={_format(item['average_deadline_miss_time'])}")
     if args.per_cycle:
         print("\nPer cycle:")
         for item in report["per_cycle"]:
             print(f"  {item['task_name']} cycle {item['cycle_number']}: "
                   f"turnaround={_format(item['turnaround_time'])}, "
                   f"response={_format(item['response_time'])}, "
-                  f"waiting={_format(item['waiting_time'])}")
+                  f"waiting={_format(item['waiting_time'])}, deadline={_format(item['deadline'])}, "
+                  f"deadline miss time={_format(item['deadline_miss_time'])}")

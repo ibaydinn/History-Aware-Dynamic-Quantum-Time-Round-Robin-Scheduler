@@ -31,6 +31,22 @@ def calculate_metrics(results: dict) -> dict:
     """
     if not isinstance(results, dict) or not isinstance(results.get("task_cycles"), list):
         raise ValueError("results must contain a task_cycles list.")
+    definitions = results.get("task_definitions", [])
+    if not isinstance(definitions, list):
+        raise ValueError("task_definitions must be a list.")
+    deadlines = {}
+    for definition in definitions:
+        if not isinstance(definition, dict):
+            raise ValueError("Task definitions must be dictionaries.")
+        name = definition.get("name")
+        if not isinstance(name, str) or not name.strip() or name in deadlines:
+            raise ValueError("Task definitions need unique non-empty names.")
+        period = _time(definition.get("period"), "period")
+        burst = _time(definition.get("burst_time"), "burst_time")
+        if burst <= 0:
+            raise ValueError("burst_time must be positive.")
+        deadlines[name] = period if period > 0 else burst
+    missed_count, miss_total = 0, 0
     timeline, identities, grouped = [], set(), {}
     totals = dict.fromkeys(_TIME_METRICS, 0)
     count = 0
@@ -76,8 +92,19 @@ def calculate_metrics(results: dict) -> dict:
             raise ValueError("Actual execution exceeds turnaround time.")
         values = {"turnaround_time": end - arrival,
                   "response_time": start - arrival, "waiting_time": waiting}
-        per_cycle.append({"task_name": name, "cycle_number": number, **values})
+        if name not in deadlines:
+            raise ValueError(f"Missing task definition for {name}.")
+        deadline = arrival + deadlines[name]
+        miss_time = max(0, end - deadline)
+        missed = end > deadline
+        missed_count += int(missed)
+        miss_total += miss_time
+        per_cycle.append({"task_name": name, "cycle_number": number, **values,
+                          "deadline": deadline, "deadline_missed": missed,
+                          "deadline_miss_time": miss_time})
         task = grouped.setdefault(name, {"cycle_count": 0, **dict.fromkeys(_TIME_METRICS, 0)})
+        task["deadline_miss_count"] = task.get("deadline_miss_count", 0) + int(missed)
+        task["deadline_miss_total"] = task.get("deadline_miss_total", 0) + miss_time
         task["cycle_count"] += 1
         count += 1
         for metric, value in values.items():
@@ -107,9 +134,13 @@ def calculate_metrics(results: dict) -> dict:
             switches += 1
     return {
         "overall": {"cycle_count": count, "context_switch_count": switches,
-                    **_averages(totals, count)},
+                    **_averages(totals, count), "deadline_miss_count": missed_count,
+                    "average_deadline_miss_time": miss_total / missed_count if missed_count else 0},
         "per_task": [{"task_name": name, "cycle_count": items["cycle_count"],
-                      **_averages(items, items["cycle_count"])}
+                      **_averages(items, items["cycle_count"]),
+                      "deadline_miss_count": items["deadline_miss_count"],
+                      "average_deadline_miss_time": (items["deadline_miss_total"] / items["deadline_miss_count"]
+                                                     if items["deadline_miss_count"] else 0)}
                      for name, items in sorted(grouped.items())],
         "per_cycle": sorted(per_cycle, key=lambda item: (item["task_name"], item["cycle_number"])),
     }
