@@ -7,7 +7,7 @@
 <style>
 :root{color-scheme:light dark;--bg:#fff;--fg:#20242b;--muted:#e8ebef;--idle:#d8d8d8;--border:#d4d9df;--series1:#4386cd;--series2:#dd9551;--series3:#65a97b;--series4:#a17cc8;--series5:#cd7889;--series6:#64a5aa}
 @media(prefers-color-scheme:dark){:root{--bg:#181b20;--fg:#e7ebf0;--muted:#303640;--idle:#555555;--border:#414955;--series1:#6baceb;--series2:#e6ac72;--series3:#84c59a;--series4:#bea0e2;--series5:#e19aaa;--series6:#8dc5ca}}
-*{box-sizing:border-box}body{margin:0;padding:24px;background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif}main{max-width:1400px;margin:auto;display:grid;gap:18px}h1{font-size:24px;font-weight:500;margin:0}p{margin:0}.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px}label{display:grid;gap:8px;min-width:0}input[type=range]{width:100%;margin:0;min-height:28px;accent-color:var(--series1)}button{padding:10px 16px;font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:8px;cursor:pointer}#error:empty{display:none}select{width:100%;padding:9px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:8px;font:inherit}svg{display:block;width:100%;color:var(--fg)}svg text{fill:var(--fg);font:13px system-ui,sans-serif}.detail{min-height:2.6em;line-height:1.6;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.hint{font-size:13px;line-height:1.5}.mark{cursor:pointer}.mark:focus{outline:2px solid var(--fg)}#summary{overflow-wrap:anywhere}@media(max-width:560px){body{padding:14px}.controls{grid-template-columns:1fr;gap:12px}}
+*{box-sizing:border-box}body{margin:0;padding:24px;background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif}main{max-width:1400px;margin:auto;display:grid;gap:18px}h1{font-size:24px;font-weight:500;margin:0}p{margin:0}.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px}label{display:grid;gap:8px;min-width:0}input[type=range]{width:100%;margin:0;min-height:28px;accent-color:var(--series1)}button{padding:10px 16px;font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:8px;cursor:pointer}#error:empty{display:none}svg{display:block;width:100%;color:var(--fg)}svg text{fill:var(--fg);font:13px system-ui,sans-serif}.detail{min-height:2.6em;line-height:1.6;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.hint{font-size:13px;line-height:1.5}.mark{cursor:pointer}.mark:focus{outline:2px solid var(--fg)}#summary{overflow-wrap:anywhere}@media(max-width:560px){body{padding:14px}.controls{grid-template-columns:1fr;gap:12px}}
 </style>
 </head>
 <body>
@@ -21,16 +21,15 @@
 <label>Position <output id="range-value"></output><input id="pan" type="range" aria-label="Start of visible time range"></label>
 </div>
 <svg id="chart" role="img" aria-label="Task execution intervals and full-run overview"></svg>
-<label>Inspect visible interval<select id="interval"></select></label>
 <p id="detail" class="detail" aria-live="polite"></p>
-<p class="hint">Adjust visible duration to zoom; move position to pan. Click an interval or select it above to inspect. Click the full-run overview to move the window. Cycle numbering starts at zero. SVG export uses a transparent background and dark text for papers.</p>
+<p class="hint">Adjust visible duration to zoom; move position to pan. Click an interval to inspect. Click the full-run overview to move the window. Cycle numbering starts at zero. SVG export uses a transparent background and dark text for papers.</p>
 <script id="results" type="application/json">null</script>
 </main>
 <script>
 (() => {
 'use strict';
 let data={scheduler:null,task_definitions:[],task_cycles:[],idle_intervals:[]};
-const root=document.getElementById('timeline'),svg=document.getElementById('chart'),zoom=document.getElementById('zoom'),pan=document.getElementById('pan'),select=document.getElementById('interval');
+const root=document.getElementById('timeline'),svg=document.getElementById('chart'),zoom=document.getElementById('zoom'),pan=document.getElementById('pan');
 let tasks=[],marks=[],total=0,extent=1;
 function validate(candidate){
  if(!candidate||typeof candidate!=='object'||Array.isArray(candidate))throw Error('Expected a simulation result object.');
@@ -68,7 +67,7 @@ const fmt=x=>Number(x.toFixed(3)).toString();
 const color=i=>i<6 ? `var(--series${i+1})`
  : `hsl(${((i*137.508)%360).toFixed(3)}, ${55+(i%3)*8}%, ${62+(i%2)*8}%)`;
 function node(tag,attrs,text,parent=svg){const n=document.createElementNS(ns,tag);for(const [key,value] of Object.entries(attrs))n.setAttribute(key,String(value));if(text!==undefined)n.textContent=text;parent.appendChild(n);return n;}
-function choose(index){const m=visible[index];selected=m||null;select.value=String(index);document.getElementById('detail').textContent=m?`${m.task} · cycle ${m.cycle} · execution ${fmt(m.start_time)}–${fmt(m.end_time)} · duration ${fmt(m.end_time-m.start_time)} · arrival ${m.arrival} · first start ${m.cycleStart} · completion ${m.cycleEnd}`:'No execution intervals in this time range.';}
+function choose(index){const m=visible[index];selected=m||null;document.getElementById('detail').textContent=m?`${m.task} · cycle ${m.cycle} · execution ${fmt(m.start_time)}–${fmt(m.end_time)} · duration ${fmt(m.end_time-m.start_time)} · arrival ${m.arrival} · first start ${m.cycleStart} · completion ${m.cycleEnd}`:'No execution intervals in this time range.';}
 function draw(){
 const width=Math.max(260,root.clientWidth),left=Math.min(190,width*.32),right=width-16,plot=right-left;
 const span=Math.max(1,Math.round(+zoom.value));zoom.value=span;pan.max=Math.max(0,extent-span);pan.value=Math.round(Math.min(+pan.value,+pan.max));const start=+pan.value,stop=start+span;
@@ -95,9 +94,9 @@ node('text',{x:left,y:axis+44},'Time (simulation units)');node('text',{x:16,y:ov
 for(const m of marks)node('rect',{x:left+m.start_time/extent*plot,y:overview+tasks.indexOf(m.task)*9,width:(m.end_time-m.start_time)/extent*plot,height:7,fill:color(tasks.indexOf(m.task)),'pointer-events':'none'});
 node('rect',{x:left+start/extent*plot,y:overview-3,width:span/extent*plot,height:Math.max(20,tasks.length*9)+6,fill:'none',stroke:'var(--fg)','pointer-events':'none'});
 const hit=node('rect',{x:left,y:overview-6,width:plot,height:Math.max(26,tasks.length*9)+12,fill:'transparent',class:'mark'});hit.addEventListener('click',event=>{const bounds=svg.getBoundingClientRect(),localX=(event.clientX-bounds.left)*width/bounds.width;pan.value=Math.round(Math.max(0,Math.min(+pan.max,(localX-left)/plot*extent-span/2)));draw();});
-select.replaceChildren();visible.forEach((m,i)=>{const option=document.createElement('option');option.value=i;option.textContent=`${m.task} · cycle ${m.cycle} · ${fmt(m.start_time)}–${fmt(m.end_time)}`;select.appendChild(option);});select.disabled=visible.length===0;choose(Math.max(0,visible.indexOf(selected)));
+choose(Math.max(0,visible.indexOf(selected)));
 }
-zoom.addEventListener('input',draw);pan.addEventListener('input',draw);select.addEventListener('change',()=>choose(+select.value));
+zoom.addEventListener('input',draw);pan.addEventListener('input',draw);
 function buildExport(){
  const [,,width,height]=svg.getAttribute('viewBox').split(/\s+/).map(Number);
  const copy=svg.cloneNode(true);

@@ -9,7 +9,7 @@ not a generated output, and is not ignored by Git.
 
 - **Visible duration**: zoom using whole time units.
 - **Position**: move through the run using whole time units.
-- **Inspect visible interval**: show task, cycle, execution, and arrival details.
+- **Click an execution bar**: show task, cycle, execution, and arrival details.
 - **Full run**: click the overview to move the visible window.
 - **Export SVG**: download the current timeline window and overview as a standalone
   vector image, including scheduler name, configuration, and selected time range.
