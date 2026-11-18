@@ -7,6 +7,7 @@ class SimulatorTaskGenerator:
         self.task_definitions: list[TaskDefinition] = []
         self.task_to_current_cycle: dict[str, int] = {}
         self.in_flight: dict[str, TaskCycle] = {}
+        self.last_completion_time: dict[str, float] = {}
         
         self.reset_task_generator()
 
@@ -35,9 +36,10 @@ class SimulatorTaskGenerator:
         """Restart cycle generation without removing task definitions."""
         self.task_to_current_cycle = {task.name: 0 for task in self.task_definitions}
         self.in_flight = {}
+        self.last_completion_time = {}
 
     def tick(self, current_time: float) -> list[TaskCycle]:
-        released_cycles: list[TaskCycle] = []
+        released_cycles: list[tuple[float, TaskCycle]] = []
 
         for task in self.task_definitions:
             cycle_number = self.task_to_current_cycle[task.name]
@@ -48,9 +50,13 @@ class SimulatorTaskGenerator:
 
             # Get the scheduled arrival time for this cycle of the task
             scheduled_arrival = task.arrival_time + cycle_number * task.period
+            eligible_time = max(
+                scheduled_arrival,
+                self.last_completion_time.get(task.name, scheduled_arrival),
+            )
 
-            # If the scheduled arrival time is in the future, skip this task for now.
-            if scheduled_arrival > current_time:
+            # A cycle must reach its scheduled arrival and its predecessor must finish.
+            if eligible_time > current_time:
                 continue
 
             # Create a new TaskCycle for this task and cycle number
@@ -65,15 +71,16 @@ class SimulatorTaskGenerator:
             )
 
             self.in_flight[task.name] = cycle
-            released_cycles.append(cycle)
+            released_cycles.append((eligible_time, cycle))
 
-        # Stable ordering preserves definition order for simultaneous arrivals.
-        return sorted(released_cycles, key=lambda cycle: cycle.arrival_time)
+        # Preserve definition order when cycles become eligible simultaneously.
+        return [cycle for _, cycle in sorted(released_cycles, key=lambda item: item[0])]
 
     def callback(self, task_cycle: TaskCycle) -> None:
         task_name = task_cycle.task_name
 
         if self.in_flight.get(task_name) is task_cycle:
+            self.last_completion_time[task_name] = task_cycle.end_time
             del self.in_flight[task_name]
             self.task_to_current_cycle[task_name] += 1
         else:
