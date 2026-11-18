@@ -60,7 +60,7 @@ class SimulatorTaskGenerator:
                 continue
 
             # Create a new TaskCycle for this task and cycle number
-            remaining_time = task.burst_times_per_cycle[cycle_number] if task.burst_times_per_cycle else task.burst_time
+            remaining_time = task.actual_burst_times[cycle_number]
 
             cycle = TaskCycle.createTaskCycle(
                 task_name=task.name,
