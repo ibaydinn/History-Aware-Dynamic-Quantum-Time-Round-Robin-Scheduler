@@ -6,7 +6,7 @@ class TaskDefinition:
     name: str
     arrival_time: int
     burst_time: int
-    period: int | None = None  # Period is relevant for cyclic tasks; for single-shot tasks, this can be None
+    period: int = 0 # Period is 0 for single-shot tasks, and can be greater than 0 for cyclic tasks.
     cycle_count: int = 1 # Cycle count is at least 1 for single-shot tasks, and can be greater than 1 for cyclic tasks.
 
     # Calculate from the beginning

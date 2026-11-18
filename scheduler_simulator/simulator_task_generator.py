@@ -19,14 +19,13 @@ class SimulatorTaskGenerator:
             else [task_definition]
         )
 
-        for task in definitions:
-            self.task_definitions.append(task)
-            self.task_to_current_cycle[task.name] = 0
+        self.task_definitions = list(definitions)
+        self.reset_task_generator()
 
     def reset_task_generator(self) -> None:
-        self.task_definitions: list[TaskDefinition] = []
-        self.task_to_current_cycle: dict[str, int] = {}
-        self.in_flight: dict[str, TaskCycle] = {}
+        """Restart cycle generation without removing task definitions."""
+        self.task_to_current_cycle = {task.name: 0 for task in self.task_definitions}
+        self.in_flight = {}
 
     def tick(self, current_time: float) -> list[TaskCycle]:
         released_cycles: list[TaskCycle] = []
@@ -46,11 +45,13 @@ class SimulatorTaskGenerator:
                 continue
 
             # Create a new TaskCycle for this task and cycle number
+            remaining_time = task.burst_times_per_cycle[cycle_number] if task.burst_times_per_cycle else task.burst_time
+
             cycle = TaskCycle.createTaskCycle(
                 task_name=task.name,
                 cycle_number=cycle_number,
                 arrival_time=scheduled_arrival,
-                remaining_time=task.burst_times_per_cycle[cycle_number],
+                remaining_time=remaining_time,
                 on_complete_callback=self.callback,
             )
 
