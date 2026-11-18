@@ -1,4 +1,4 @@
-from .task_definition import TaskDefinition
+from math import isfinite
 
 class TaskCycle:
 
@@ -30,6 +30,16 @@ class TaskCycle:
         return task_cycle
 
     def execute(self, current_time: int, duration: int) -> int:
+        if (isinstance(current_time, bool)
+                or not isinstance(current_time, (int, float))
+                or (isinstance(current_time, float) and not isfinite(current_time))
+                or current_time < 0):
+            raise ValueError("current_time must be a non-negative, finite number.")
+        if current_time < self.arrival_time:
+            raise ValueError("Cannot execute before the task's arrival time.")
+        if self.exec_timeline and current_time < self.exec_timeline[-1][1]:
+            raise ValueError("Execution cannot overlap a previous interval.")
+
         if isinstance(duration, bool) or not isinstance(duration, int) or duration <= 0:
             raise ValueError("Execution duration must be a positive integer.")
         if self.is_completed():
