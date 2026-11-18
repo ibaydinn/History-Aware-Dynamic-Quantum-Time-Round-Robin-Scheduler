@@ -10,6 +10,10 @@ class Simulator:
     def set_scheduler(self, scheduler: SchedulerBase) -> None:
         if self.task_generator is None:
             raise ValueError("Load task definitions before setting up a scheduler.")
+          
+        if not isinstance(scheduler, SchedulerBase):
+            raise TypeError("scheduler must be a SchedulerBase instance.")
+        
         self.reset_simulator()
         scheduler.reset()
         self.scheduler = scheduler
@@ -38,26 +42,32 @@ class Simulator:
         # Restart execution without detaching the configured scheduler.
         self.scheduler.reset()
         self.task_generator.reset_task_generator()
-        current_time = 0.0
+        current_time = 0
         while self.task_generator.any_task_remain() or self.scheduler.remain_task_number() > 0:
-            # Run the task generator tick. It returns the tasks that ready to be added to the scheduler's ready queue at the current time.
-            tasks_to_add = self.task_generator.tick(current_time)
+            # Run a single time step in the simulation, which includes generating new task cycles and executing the scheduler's logic.
+            current_time = self.time_step(current_time)
 
-            # Add the ready tasks to the scheduler's ready queue
-            self.scheduler.add_task_to_ready_queue(tasks_to_add)
+    def time_step(self, current_time: int) -> int:
+        if self.scheduler is None or self.task_generator is None:
+            raise ValueError("Simulator is not properly set up.")
 
-            # Execute the scheduler's logic for a single time tick
-            passed_time_in_tick = self.scheduler.tick(current_time)
+        # Run the task generator tick. It returns the tasks that ready to be added to the scheduler's ready queue at the current time.
+        tasks_to_add = self.task_generator.tick(current_time)
 
-            if passed_time_in_tick == 0:
-                # If no time has passed, it means the scheduler is idle. We can increment the current time by a small value (e.g., 1) to avoid an infinite loop.
-                print(f"Scheduler is idle at time {current_time}. No tasks to execute.")
-                passed_time_in_tick = 1
+        # Add the ready tasks to the scheduler's ready queue
+        self.scheduler.add_task_to_ready_queue(tasks_to_add)
 
-            # Update the current time based on the time passed in this tick
-            current_time += passed_time_in_tick
+        # Execute the scheduler's logic for a single time tick
+        passed_time_in_tick = self.scheduler.tick(current_time)
 
-        print("Simulation completed.")
+        if passed_time_in_tick == 0:
+            # If no time has passed, it means the scheduler is idle. We can increment the current time by a small value (e.g., 1) to avoid an infinite loop.
+            passed_time_in_tick = 1
+
+        # Update the current time based on the time passed in this tick
+        current_time += passed_time_in_tick
+
+        return current_time
 
     def get_results(self):
         task_cycles = list(self.scheduler.get_completed_task_cycles()) if self.scheduler else []
