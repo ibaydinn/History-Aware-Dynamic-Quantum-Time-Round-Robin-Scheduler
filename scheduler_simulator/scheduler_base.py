@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from .task_cycle import TaskCycle
 
-class SchedulerBase:
+class SchedulerBase(ABC):
     name = "BaseScheduler"
 
     def __init__(self):

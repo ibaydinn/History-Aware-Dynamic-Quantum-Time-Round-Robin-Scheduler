@@ -8,6 +8,16 @@ class RoundRobinScheduler(SchedulerBase):
         super().__init__()
         self.time_quantum = time_quantum
 
+    @property
+    def time_quantum(self) -> int:
+        return self._time_quantum
+
+    @time_quantum.setter
+    def time_quantum(self, value: int) -> None:
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError("Time quantum must be a positive integer.")
+        self._time_quantum = value
+
     def add_task_to_ready_queue(self, task_instance: TaskCycle | list[TaskCycle]) -> None:
         if isinstance(task_instance, list):
             self.ready_que.extend(task_instance)

@@ -19,6 +19,15 @@ class SimulatorTaskGenerator:
             else [task_definition]
         )
 
+        names = set()
+        for task in definitions:
+            if not isinstance(task, TaskDefinition):
+                raise ValueError("Tasks must be TaskDefinition instances.")
+            task.validate()
+            if task.name in names:
+                raise ValueError(f"Task names must be unique: {task.name!r}.")
+            names.add(task.name)
+
         self.task_definitions = list(definitions)
         self.reset_task_generator()
 
@@ -58,7 +67,8 @@ class SimulatorTaskGenerator:
             self.in_flight[task.name] = cycle
             released_cycles.append(cycle)
 
-        return released_cycles
+        # Stable ordering preserves definition order for simultaneous arrivals.
+        return sorted(released_cycles, key=lambda cycle: cycle.arrival_time)
 
     def callback(self, task_cycle: TaskCycle) -> None:
         task_name = task_cycle.task_name

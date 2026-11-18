@@ -12,10 +12,33 @@ class TaskDefinition:
     # Calculate from the beginning
     burst_times_per_cycle: list[int] | None = None  # Specific burst times for each cycle
 
-    def set_burst_times_per_cycle(self, burst_times: list[int]):
+    def __post_init__(self) -> None:
+        self.validate()
+        if self.burst_times_per_cycle is not None:
+            self.burst_times_per_cycle = list(self.burst_times_per_cycle)
+
+    def validate(self) -> None:
+        if not isinstance(self.name, str) or not self.name.strip():
+            raise ValueError("Task name must be a non-empty string.")
+        for field, minimum in (("arrival_time", 0), ("burst_time", 1),
+                               ("period", 0), ("cycle_count", 1)):
+            value = getattr(self, field)
+            if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+                raise ValueError(f"{field} must be an integer greater than or equal to {minimum}.")
+        if self.cycle_count > 1 and self.period == 0:
+            raise ValueError("Period must be positive for tasks with multiple cycles.")
+        if self.burst_times_per_cycle is not None:
+            self._validate_burst_times(self.burst_times_per_cycle)
+
+    def _validate_burst_times(self, burst_times: list[int]) -> None:
+        if not isinstance(burst_times, list):
+            raise ValueError("burst_times must be a list of positive integers.")
         if len(burst_times) != self.cycle_count:
             raise ValueError("Length of burst_times must match cycle_count.")
         if any(isinstance(burst, bool) or not isinstance(burst, int) or burst <= 0
                for burst in burst_times):
             raise ValueError("burst_times must contain positive integers.")
+
+    def set_burst_times_per_cycle(self, burst_times: list[int]):
+        self._validate_burst_times(burst_times)
         self.burst_times_per_cycle = list(burst_times)

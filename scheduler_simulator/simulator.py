@@ -17,8 +17,9 @@ class Simulator:
     def load_task_definitions(self, task_definitions: TaskDefinition | list[TaskDefinition]) -> None:
         if self.task_generator is not None:
             raise ValueError("Task definitions are already loaded. Create a new Simulator for different tasks.")
-        self.task_generator = SimulatorTaskGenerator()
-        self.task_generator.setup_task_generator(task_definitions)
+        task_generator = SimulatorTaskGenerator()
+        task_generator.setup_task_generator(task_definitions)
+        self.task_generator = task_generator
         self.reset_simulator()
 
     def reset_simulator(self) -> None:
