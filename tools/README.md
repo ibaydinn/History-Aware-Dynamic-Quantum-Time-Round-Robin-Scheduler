@@ -1,6 +1,6 @@
-# Simulation viewer
+# Timeline viewer
 
-Open `viewer.html` in a browser and click **Load JSON** to select a saved
+Open `timeline_viewer.html` in a browser and click **Load JSON** to select a saved
 `Simulator.get_results()` JSON file. Load another file to switch simulations.
 
 No Python command, server, installation, or internet connection is needed.
@@ -50,7 +50,7 @@ starts and deadlines share a line with both labels.
 
 ## Overall results comparison
 
-Open `results_viewer.html` in a browser (keep `results_viewer.js` beside it).
+Open `metric_viewer.html` in a browser (keep `metric_viewer.js` beside it).
 Click **Load metrics JSONs** and select one or more saved `calculate_metrics(results)`
 reports, such as `simulation_metrics.json`. Loading more files adds runs to the
 comparison. Each run has a consistent color; the scheduler’s `get_name()` result is used directly as its label. Use × to remove a run, or **Clear all** to start again.
