@@ -3,8 +3,7 @@ outputs
 tests
 *.png
 *.svg
-*.json
+*metrics.json
+*results.json
 
-simulation_results
-simulation_results_2
-tasks
+output
