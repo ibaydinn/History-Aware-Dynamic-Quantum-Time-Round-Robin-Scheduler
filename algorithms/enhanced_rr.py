@@ -1,15 +1,10 @@
 from scheduler_simulator import SchedulerBase
 from scheduler_simulator import TaskCycle
 
+def create_err_scheduler_from_config(config: dict) -> 'EnhancedRR':
+    return EnhancedRR()
 
 class EnhancedRR(SchedulerBase):
-    """ERRBTQ for an initial batch with known definition.burst_time values.
-
-    Later arrivals/cycles append to the queue and use the same quantum until
-    reset. This arrival policy extends the paper's initial-batch model.
-    """
-    name = "Enhanced Round Robin"
-
     def __init__(self):
         super().__init__()
         self.ready_que : list[TaskCycle] = []
@@ -50,8 +45,14 @@ class EnhancedRR(SchedulerBase):
         self.ready_que.clear()
         self.time_quantum = None
 
-    def info(self) -> str:
-        return f"{self.name} - Enhanced Scheduling based on Median Burst Time)"
+    def get_name(self) -> str:
+        return "Enhanced Round Robin"
+
+    def get_configuration(self) -> dict:
+        return { }
+
+    def remain_task_number(self) -> int:
+        return len(self.ready_que)
 
     def calculate_median(self, data: list[int]) -> int:
         """Integer-time adaptation: nearest integer, with half ties to even."""
@@ -64,13 +65,3 @@ class EnhancedRR(SchedulerBase):
             return round((sorted_data[mid - 1] + sorted_data[mid]) / 2)
         else:
             return sorted_data[mid]
-
-    def get_name(self) -> str:
-        return self.name
-
-    def get_configuration(self) -> dict:
-        return { }
-
-    def remain_task_number(self) -> int:
-        """Return the number of tasks remaining in the scheduler's ready queue."""
-        return len(self.ready_que)

@@ -22,7 +22,7 @@ class TaskCycle:
         self.on_complete_callback = None
     
     @staticmethod
-    def createTaskCycle(task_name: str, cycle_number: int, arrival_time: int, remaining_time: int, task_definition: TaskDefinition, on_complete_callback=None) -> 'TaskCycle':
+    def createTaskCycle(task_name: str, cycle_number: int, arrival_time: int, remaining_time: int, task_definition: TaskDefinition =None, on_complete_callback=None) -> 'TaskCycle':
         task_cycle = TaskCycle()
         task_cycle.task_name = task_name
         task_cycle.cycle_number = cycle_number

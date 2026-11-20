@@ -1,6 +1,10 @@
 from scheduler_simulator import SchedulerBase
 from scheduler_simulator import TaskCycle
 
+def create_round_robin_from_config(config: dict) -> 'RoundRobinScheduler':
+    time_quantum = config.get("time_quantum", 10)
+    return RoundRobinScheduler(time_quantum=time_quantum)
+
 class RoundRobinScheduler(SchedulerBase):
     def __init__(self, time_quantum: int = 10) -> None:
         if time_quantum <= 0:
@@ -51,12 +55,14 @@ class RoundRobinScheduler(SchedulerBase):
         self.new_tasks_added = []
         self.pending_requeue = None
 
+    def get_name(self) -> str:
+        return f"Round Robin"
+
+    def get_configuration(self) -> dict:
+        return {"time_quantum": self.time_quantum}
+    
     def remain_task_number(self) -> int:
         return (len(self.ready_que) + len(self.new_tasks_added)
                 + int(self.pending_requeue is not None))
 
-    def get_name(self) -> str:
-        return f"Round Robin (q={self.time_quantum})"
 
-    def get_configuration(self) -> dict:
-        return {"time_quantum": self.time_quantum}

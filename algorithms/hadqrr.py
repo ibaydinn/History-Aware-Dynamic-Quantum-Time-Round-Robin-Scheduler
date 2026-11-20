@@ -1,6 +1,11 @@
 from scheduler_simulator import SchedulerBase
 from scheduler_simulator import TaskCycle
 
+def create_hadqrr_from_config(config: dict) -> 'HADQRRScheduler':
+    default_time_quantum = config.get("default_time_quantum", 20)
+    history_length = config.get("history_length", 10)
+    return HADQRRScheduler(default_time_quantum=default_time_quantum, history_length=history_length)
+
 class HADQRRScheduler(SchedulerBase):
     def __init__(self, default_time_quantum: int = 20, history_length: int = 10) -> None:
         super().__init__()
@@ -77,6 +82,20 @@ class HADQRRScheduler(SchedulerBase):
         
         return self.pass_idle_time(current_time)
 
+    def reset(self) -> None:
+        super().reset()
+        self.ready_que = []
+        self.history = {}
+
+    def get_name(self) -> str:
+        return f"HADQRR"
+
+    def get_configuration(self) -> dict:
+        return {"default_time_quantum": self.default_time_quantum, "history_length": self.history_length}
+
+    def remain_task_number(self) -> int:
+        return len(self.ready_que)
+    
     def calculate_median(self, data: list[int]) -> float:
         if not data:
             return 0.0
@@ -93,16 +112,3 @@ class HADQRRScheduler(SchedulerBase):
             return 0.0
         return sum(data) / len(data)
     
-    def reset(self) -> None:
-        super().reset()
-        self.ready_que = []
-        self.history = {}
-
-    def remain_task_number(self) -> int:
-        return len(self.ready_que)
-
-    def get_name(self) -> str:
-        return f"HADQRR"
-
-    def get_configuration(self) -> dict:
-        return {"default_time_quantum": self.default_time_quantum, "history_length": self.history_length}
