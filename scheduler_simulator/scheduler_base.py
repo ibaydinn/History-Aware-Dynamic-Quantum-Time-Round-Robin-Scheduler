@@ -48,3 +48,7 @@ class SchedulerBase(ABC):
     def get_idle_times(self) -> list[tuple[int, int]]:
         """Return the list of idle times."""
         return self.idle_times
+
+    def record_finished_task_cycle(self, task_cycle: TaskCycle) -> None:
+        """Record a finished task cycle."""
+        self.completed_task_cycles.append(task_cycle)

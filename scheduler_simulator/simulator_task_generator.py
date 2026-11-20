@@ -67,6 +67,7 @@ class SimulatorTaskGenerator:
                 cycle_number=cycle_number,
                 arrival_time=scheduled_arrival,
                 remaining_time=remaining_time,
+                task_definition=task,
                 on_complete_callback=self.callback,
             )
 

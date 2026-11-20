@@ -51,7 +51,7 @@ class HADQRRScheduler(SchedulerBase):
                 self.ready_que.append(selected_task)
             else:
                 # Task finished, record the finished task
-                self.completed_task_cycles.append(selected_task)
+                self.record_finished_task_cycle(selected_task)
 
                 # Calculate actual burst time
                 actual_burst_time = self.run_times.get(selected_task.task_name, 0) + passed_time

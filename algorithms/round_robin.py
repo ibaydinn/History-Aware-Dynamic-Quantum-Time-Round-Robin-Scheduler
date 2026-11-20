@@ -36,7 +36,7 @@ class RoundRobinScheduler(SchedulerBase):
             # Execute the selected task for the time quantum or until it completes
             passed_time = selected_task.execute(current_time, self.time_quantum)
             if selected_task.is_completed():
-                self.completed_task_cycles.append(selected_task)
+                self.record_finished_task_cycle(selected_task)
             else:
                 self.pending_requeue = selected_task
 

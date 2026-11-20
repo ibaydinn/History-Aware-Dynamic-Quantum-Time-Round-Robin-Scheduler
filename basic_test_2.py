@@ -1,4 +1,4 @@
-from algorithms import RoundRobinScheduler, HADQRRScheduler
+from algorithms import RoundRobinScheduler, HADQRRScheduler, EnhancedRR
 from metrics import calculate_metrics
 from scheduler_simulator import Simulator, TaskDefinition
 
@@ -11,10 +11,11 @@ task_c = TaskDefinition(name="C", arrival_time=5, burst_time=4, actual_burst_tim
 
 scheduler_1 = RoundRobinScheduler(time_quantum=2)
 scheduler_2 = HADQRRScheduler(default_time_quantum=2, history_length=2)
-
+scheduler_3 = EnhancedRR()
 
 schesd = [scheduler_1,
-    scheduler_2
+    scheduler_2,
+    scheduler_3
 ]
 
 simulator = Simulator()
