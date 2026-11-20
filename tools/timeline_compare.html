@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Timeline comparison</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#20242b;--border:#d4d9df}@media(prefers-color-scheme:dark){:root{--bg:#181b20;--fg:#e7ebf0;--border:#414955}}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif;margin:0;padding:24px}main{max-width:1400px;margin:auto}h1{font-weight:500}button{cursor:pointer}button,input{font:inherit}button{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg)}.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:16px 0}.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px}label{display:grid;gap:8px}input[type=range]{width:100%}section{border:1px solid var(--border);border-radius:12px;padding:18px;margin:20px 0}.heading{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px;overflow-wrap:anywhere}#error{white-space:pre-line;color:#d44}#notice{line-height:1.5}#error:empty,#notice:empty{display:none}.toolbar label{display:flex;align-items:center}button:disabled{opacity:.5}@media(max-width:600px){body{padding:12px}.controls{grid-template-columns:1fr}}
+
+body{padding:16px}h1{font-size:22px;margin:0}.toolbar{margin:10px 0;gap:10px}.controls{gap:20px}label{gap:3px}.controls label{grid-template-columns:auto 1fr}.controls output{text-align:right}.controls input{grid-column:1/-1}section{border:0;border-top:1px solid var(--border);border-radius:0;padding:8px 0 0;margin:6px 0}.heading{align-items:center;margin-bottom:2px;font-weight:600}.run-menu{position:relative;font-size:12px;font-weight:400}.run-menu summary{cursor:pointer;padding:4px 8px}.run-actions{position:absolute;right:0;top:100%;z-index:2;display:grid;gap:6px;background:var(--bg);border:1px solid var(--border);padding:10px;border-radius:8px;min-width:150px}.run-actions select{font:inherit;color:var(--fg);background:var(--bg);padding:6px}button{padding:6px 10px}
+</style></head><body><main>
+<h1>Timeline comparison</h1>
+<div class="toolbar"><button id="load">Load simulation JSONs</button><button id="clear">Clear all</button><input id="files" type="file" accept=".json,application/json" multiple hidden></div>
+<p id="error" role="alert"></p><p id="notice" role="status"></p>
+<div class="controls"><label>Visible duration <output id="duration"></output><input id="zoom" type="range" min="1" step="1" value="60"></label><label>Position <output id="range"></output><input id="pan" type="range" min="0" step="1" value="0"></label></div>
+<div class="toolbar"><label><input id="starts" type="checkbox" checked> Expected starts</label><label><input id="deadlines" type="checkbox" checked> Deadlines</label></div>
+<p id="empty">No simulations loaded.</p><div id="runs"></div>
+</main><script src="timeline_common.js"></script><script src="timeline_compare.js"></script></body></html>

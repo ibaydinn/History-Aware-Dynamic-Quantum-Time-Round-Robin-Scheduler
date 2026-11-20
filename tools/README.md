@@ -98,3 +98,21 @@ Both viewers offer **Export background: Transparent / White**. Transparent is
 the default. White adds an opaque background behind the entire export, including
 the legend and headers. This applies to SVG and PNG, including individual and
 combined result charts. The on-screen theme is unchanged.
+
+## Compare multiple timelines
+
+Open `timeline_compare.html` and select multiple `Simulator.get_results()` JSON
+files. Additional loads append runs. Each scheduler appears in its own panel.
+Global duration and position controls synchronize the time window. Shared task rows and colors make the
+same task easy to follow, even when files list definitions in different orders.
+Start/deadline visibility is controlled globally. Comparison panels show only the
+scheduler name and timeline; repeated overviews, legends, and explanatory text
+are hidden. Each compact Options menu contains Remove and SVG/PNG exports with
+transparent or white backgrounds. The standalone viewer keeps its full controls.
+
+Input hash differences are flagged, and missing hashes are marked unverified.
+Remove individual panels or use Clear all. This tool works offline.
+
+`timeline_common.js` supplies the shared renderer, validation, markers, and exports
+for both `timeline_viewer.html` and `timeline_compare.html`; keep it beside both
+HTML files. The comparison page also requires `timeline_compare.js`.

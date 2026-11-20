@@ -4,13 +4,13 @@ from scheduler_simulator import Simulator, TaskDefinition
 
 import json
 
-task_a = TaskDefinition(name="A", arrival_time=0, burst_time=5, actual_burst_times=[5, 5, 5], period=10, cycle_count=3)
-task_b = TaskDefinition(name="B", arrival_time=0, burst_time=3, actual_burst_times=[3, 3], period=6, cycle_count=2)
-task_c = TaskDefinition(name="C", arrival_time=5, burst_time=4, actual_burst_times=[2, 2, 2], period=12, cycle_count=3)
+task_a = TaskDefinition(name="A", arrival_time=0, burst_time=5, actual_burst_times=[5, 5, 8, 8, 5, 5], period=10, cycle_count=6)
+task_b = TaskDefinition(name="B", arrival_time=0, burst_time=3, actual_burst_times=[3, 3, 6, 6, 3, 3], period=8,  cycle_count=6)
+task_c = TaskDefinition(name="C", arrival_time=5, burst_time=4, actual_burst_times=[2, 2, 4, 4, 2, 2], period=13, cycle_count=6)
 
 
-scheduler_1 = RoundRobinScheduler(time_quantum=2)
-scheduler_2 = HADQRRScheduler(default_time_quantum=2, history_length=2)
+scheduler_1 = RoundRobinScheduler(time_quantum=10)
+scheduler_2 = HADQRRScheduler(default_time_quantum=10, history_length=2)
 scheduler_3 = EnhancedRR()
 
 schesd = [scheduler_1,

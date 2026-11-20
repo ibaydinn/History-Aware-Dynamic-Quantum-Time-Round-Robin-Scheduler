@@ -1,0 +1,433 @@
+'use strict';
+window.createTimelineViewer = function(host, options = {}) {
+const scope=host.attachShadow({mode:'open'});
+scope.innerHTML=`<style>:host{display:block;color:var(--fg);font:15px system-ui,sans-serif}
+        :host {
+            color-scheme: light dark;
+            --miss: #c43d3d;
+            --bg: #fff;
+            --fg: #20242b;
+            --muted: #e8ebef;
+            --idle: #d8d8d8;
+            --border: #d4d9df;
+            --series1: #4386cd;
+            --series2: #dd9551;
+            --series3: #65a97b;
+            --series4: #a17cc8;
+            --series5: #cd7889;
+            --series6: #64a5aa
+        }
+
+        @media(prefers-color-scheme:dark) {
+            :host {
+                --miss: #ff8585;
+                --bg: #181b20;
+                --fg: #e7ebf0;
+                --muted: #303640;
+                --idle: #555555;
+                --border: #414955;
+                --series1: #6baceb;
+                --series2: #e6ac72;
+                --series3: #84c59a;
+                --series4: #bea0e2;
+                --series5: #e19aaa;
+                --series6: #8dc5ca
+            }
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            background: var(--bg);
+            color: var(--fg);
+            font: 15px system-ui, sans-serif
+        }
+
+        main {
+            max-width: 1400px;
+            margin: auto;
+            display: grid;
+            gap: 18px
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 500;
+            margin: 0
+        }
+
+        p {
+            margin: 0
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            min-width: 0
+        }
+
+        input[type=range] {
+            width: 100%;
+            margin: 0;
+            min-height: 28px;
+            accent-color: var(--series1)
+        }
+
+        button {
+            padding: 10px 16px;
+            font: inherit;
+            background: var(--bg);
+            color: var(--fg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer
+        }
+
+        #error:empty {
+            display: none
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            color: var(--fg)
+        }
+
+        svg text {
+            fill: var(--fg);
+            font: 13px system-ui, sans-serif
+        }
+
+        .hint {
+            font-size: 13px;
+            line-height: 1.5
+        }
+
+        .mark {
+            cursor: pointer
+        }
+
+        .mark:focus {
+            outline: 2px solid var(--fg)
+        }
+
+        #summary {
+            overflow-wrap: anywhere
+        }
+
+        @media(max-width:560px) {
+            body {
+                padding: 14px
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+                gap: 12px
+            }
+        }
+
+        button[aria-pressed="true"] {
+            background: var(--muted);
+            border-color: var(--fg)
+        }
+
+        .legend summary {
+            cursor: pointer;
+            width: fit-content
+        }
+
+        .legend p {
+            margin-top: 8px
+        }
+
+        .legend .miss {
+            color: var(--miss);
+            font-weight: 600
+        }
+
+        .marker-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px
+        }
+
+        svg text.marker-label {
+            font-size: 11px;
+            font-weight: 600
+        }
+
+        .export-background {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .export-background select {
+            font: inherit;
+            padding: 8px;
+            background: var(--bg);
+            color: var(--fg);
+            border: 1px solid var(--border);
+            border-radius: 8px
+        }
+    
+[hidden]{display:none!important}</style><main id="timeline">
+        <h1>Timeline viewer</h1>
+        <div><button id="load" type="button">Load JSON</button> <button id="export-svg" type="button" disabled>Export
+                SVG</button> <button id="export-png" type="button" disabled>Export PNG</button><input id="file"
+                type="file" accept=".json,application/json" hidden></div>
+        <label class="export-background">Export background <select id="export-background">
+                <option value="transparent">Transparent</option>
+                <option value="white">White</option>
+            </select></label>
+        <p id="error" role="alert"></p>
+        <p id="summary"></p>
+        <div class="controls">
+            <label>Visible duration <output id="duration-value"></output><input id="zoom" type="range"
+                    aria-label="Visible time duration"></label>
+            <label>Position <output id="range-value"></output><input id="pan" type="range"
+                    aria-label="Start of visible time range"></label>
+        </div>
+        <div class="marker-controls" role="group" aria-label="Timeline markers">
+            <button id="toggle-starts" type="button" aria-pressed="true">Expected starts: on</button>
+            <button id="toggle-deadlines" type="button" aria-pressed="true">Deadlines: on</button>
+        </div>
+        <svg id="chart" role="img" aria-label="Task execution intervals and full-run overview"></svg>
+        <details class="legend">
+            <summary>Marker legend</summary>
+            <p class="hint"><strong>s0, s1, …</strong> — expected cycle start (scheduled arrival).<br>
+                <strong>d0, d1, …</strong> — cycle deadline.<br>
+                <strong class="miss">!</strong> — deadline missed; its label is red.<br>
+                Cycle numbering starts at zero. Coincident markers share a label, such as d0 / s1.
+            </p>
+        </details>
+        <p class="hint">Adjust visible duration to zoom; move position to pan. Click the full-run overview to move the
+            window. Use the marker buttons to show or hide each; exports follow the current view. Exports use the
+            selected background and dark text for papers.</p>
+        <script id="results" type="application/json">null</script>
+    </main>`;
+const get=id=>scope.getElementById(id);
+
+
+let data = { scheduler: null, task_definitions: [], task_cycles: [], idle_intervals: [] };
+const root = get('timeline'), svg = get('chart'), zoom = get('zoom'), pan = get('pan');
+let tasks = [], marks = [], deadlines = [], total = 0, extent = 1, ownExtent = 1;
+let showStarts = true, showDeadlines = true;
+function validate(candidate) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) throw Error('Expected a simulation result object.');
+    for (const key of ['task_definitions', 'task_cycles', 'idle_intervals']) if (!Array.isArray(candidate[key])) throw Error(`${key} must be a list.`);
+    for (const task of candidate.task_definitions) if (!task || typeof task.name !== 'string') throw Error('Each task definition needs a name.');
+    const definitions = new Map();
+    for (const t of candidate.task_definitions) {
+        if (definitions.has(t.name) || !Number.isFinite(t.period) || t.period < 0 || !Number.isFinite(t.burst_time) || t.burst_time <= 0) throw Error('Task definitions need unique names, non-negative period and positive burst_time.');
+        definitions.set(t.name, t);
+    }
+    const intervals = [...candidate.idle_intervals];
+    for (const cycle of candidate.task_cycles) {
+        if (!cycle || typeof cycle.task_name !== 'string' || !Array.isArray(cycle.execution_intervals)) throw Error('Each cycle needs task_name and execution_intervals.');
+        if (!definitions.has(cycle.task_name)) throw Error('Missing task definition for ' + cycle.task_name);
+        if (!Number.isInteger(cycle.cycle_number) || cycle.cycle_number < 0) throw Error('Invalid cycle number.');
+        for (const key of ['arrival_time', 'start_time', 'end_time']) if (!Number.isFinite(cycle[key]) || cycle[key] < 0) throw Error(`Invalid cycle ${key}.`);
+        for (const interval of cycle.execution_intervals) intervals.push(interval);
+    }
+    for (const interval of intervals) if (!interval || !Number.isFinite(interval.start_time) || !Number.isFinite(interval.end_time) || interval.start_time < 0 || interval.end_time <= interval.start_time) throw Error('Intervals must have finite times with 0 <= start < end.');
+}
+function loadData(candidate, label) {
+    validate(candidate);
+    data = candidate;
+    tasks = [...new Set([...data.task_definitions.map(t => t.name), ...data.task_cycles.map(c => c.task_name)])];
+    marks = data.task_cycles.flatMap(c => c.execution_intervals.map((x, i) => ({ ...x, task: c.task_name, cycle: c.cycle_number, part: i, arrival: c.arrival_time, cycleStart: c.start_time, cycleEnd: c.end_time })));
+    const definitions = new Map(data.task_definitions.map(t => [t.name, t]));
+    deadlines = data.task_cycles.map(c => { const t = definitions.get(c.task_name), time = c.arrival_time + (t.period > 0 ? t.period : t.burst_time); return { task: c.task_name, cycle: c.cycle_number, arrival: c.arrival_time, time, miss: Math.max(0, c.end_time - time) }; });
+    total = marks.concat(data.idle_intervals).reduce((end, x) => Math.max(end, x.end_time), 0); extent = Math.max(1, Math.ceil(deadlines.reduce((end, d) => Math.max(end, d.time), total)));
+    ownExtent = extent;
+    Object.assign(zoom, { min: 1, max: extent, step: 1, value: Math.min(60, extent), disabled: total === 0 });
+    Object.assign(pan, { min: 0, max: extent, step: 1, value: 0, disabled: total === 0 });
+    get('summary').textContent = data.scheduler
+        ? data.scheduler.name || 'Scheduler' : 'Load a simulation JSON file';
+    get('export-svg').disabled = total === 0;
+    get('export-png').disabled = total === 0;
+    get('error').textContent = ''; draw();
+}
+const ns = 'http://www.w3.org/2000/svg'; let visible = [], geometry = {};
+const fmt = x => Number(x.toFixed(3)).toString();
+// Keep the initial palette; extend it without cycling through the same six colors.
+const color = i => i < 6 ? `var(--series${i + 1})`
+    : `hsl(${((i * 137.508) % 360).toFixed(3)}, ${55 + (i % 3) * 8}%, ${62 + (i % 2) * 8}%)`;
+function node(tag, attrs, text, parent = svg) { const n = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attrs)) n.setAttribute(key, String(value)); if (text !== undefined) n.textContent = text; parent.appendChild(n); return n; }
+function draw() {
+    const width = Math.max(260, root.clientWidth), left = Math.min(190, width * .32), right = width - 16, plot = right - left;
+    const span = Math.max(1, Math.round(+zoom.value)); zoom.value = span; pan.max = Math.max(0, extent - span); pan.value = Math.round(Math.min(+pan.value, +pan.max)); const start = +pan.value, stop = start + span;
+    get('duration-value').textContent = `${fmt(span)} units`; get('range-value').textContent = `${fmt(start)}–${fmt(stop)}`;
+    const rows = tasks.length + 1, axis = rows * 48 + 28, overview = axis + 66, height = options.comparison ? axis + 30 : overview + Math.max(26, tasks.length * 9) + 28;
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.style.height = `${height}px`; svg.replaceChildren(); geometry = { left, right, plot, overview };
+    const x = t => left + (t - start) / span * plot, ticks = width < 500 ? 3 : 8;
+    const tickStep = Math.max(1, Math.ceil(span / ticks));
+    for (let t = start; t <= stop; t += tickStep) { const px = x(t); node('line', { x1: px, x2: px, y1: 12, y2: axis, stroke: 'var(--border)' }); node('text', { x: px, y: axis + 20, 'text-anchor': t === start ? 'start' : t === stop ? 'end' : 'middle' }, String(t)); }
+    [...tasks, 'Idle'].forEach((name, i) => { const limit = Math.max(4, Math.floor((left - 32) / 8)); const label = node('text', { x: 16, y: 37 + i * 48 }, name.length > limit ? name.slice(0, limit - 1) + '…' : name); node('title', {}, name, label); });
+    visible = marks.filter(m => m.end_time > start && m.start_time < stop).sort((a, b) => a.start_time - b.start_time);
+    visible.forEach(m => {
+        const row = tasks.indexOf(m.task), xx = x(Math.max(start, m.start_time)), ww = x(Math.min(stop, m.end_time)) - xx;
+        const rect = node('rect', { x: xx, y: 18 + row * 48, width: ww, height: 28, rx: 9, fill: color(row) }); node('title', {}, `${m.task} · cycle ${m.cycle} · ${m.start_time}–${m.end_time}`, rect);
+        if (ww > 42) node('text', { x: xx + ww / 2, y: 37 + row * 48, 'text-anchor': 'middle', 'pointer-events': 'none' }, `c${m.cycle}`);
+    });
+    for (const m of data.idle_intervals) {
+        if (m.end_time <= start || m.start_time >= stop) continue;
+        const xx = x(Math.max(start, m.start_time)), ww = x(Math.min(stop, m.end_time)) - xx;
+        const r = node('rect', { x: xx, y: 18 + tasks.length * 48, width: ww, height: 28, rx: 5, fill: 'var(--idle)' });
+        node('title', {}, `Idle ${m.start_time}–${m.end_time}`, r);
+        if (ww > 42) node('text', { x: xx + ww / 2, y: 37 + tasks.length * 48, 'text-anchor': 'middle', 'pointer-events': 'none' }, 'Idle');
+    }
+    // Group coincident starts/deadlines so d0 and s1 remain readable at a period boundary.
+    const markerGroups = new Map();
+    for (const d of deadlines) {
+        for (const marker of [
+            ...(showStarts ? [{ time: d.arrival, label: `s${d.cycle}`, miss: false, description: `expected start ${d.arrival}` }] : []),
+            ...(showDeadlines ? [{ time: d.time, label: `d${d.cycle}${d.miss > 0 ? '!' : ''}`, miss: d.miss > 0, description: `deadline ${d.time} · ${d.miss > 0 ? 'missed by ' + d.miss : 'met'}` }] : [])
+        ]) {
+            if (marker.time < start || marker.time > stop) continue;
+            const key = JSON.stringify([d.task, marker.time]);
+            if (!markerGroups.has(key)) markerGroups.set(key, { task: d.task, time: marker.time, labels: [] });
+            markerGroups.get(key).labels.push({ ...marker, cycle: d.cycle });
+        }
+    }
+    for (const group of markerGroups.values()) {
+        const row = tasks.indexOf(group.task), px = x(group.time), atRight = px > right - 90;
+        const line = node('line', { x1: px, x2: px, y1: 14 + row * 48, y2: 48 + row * 48, stroke: 'var(--fg)', 'stroke-dasharray': '4 3', 'stroke-width': 1.5 });
+        node('title', {}, group.labels.map(m => `${group.task} c${m.cycle} ${m.description}`).join('\n'), line);
+        const label = node('text', { x: px + (atRight ? -3 : 3), y: 12 + row * 48, 'text-anchor': atRight ? 'end' : 'start', class: 'marker-label' });
+        group.labels.sort((a, b) => a.cycle - b.cycle).forEach((m, i) => {
+            if (i) node('tspan', {}, ' / ', label);
+            node('tspan', { fill: m.miss ? 'var(--miss)' : 'var(--fg)' }, m.label, label);
+        });
+    }
+    if (!options.comparison) {
+    node('text', { x: left, y: axis + 44 }, 'Time (simulation units)');
+    node('text', { x: 16, y: overview + 16 }, 'Full run');
+    for (const m of marks) node('rect', { x: left + m.start_time / extent * plot, y: overview + tasks.indexOf(m.task) * 9, width: (m.end_time - m.start_time) / extent * plot, height: 7, fill: color(tasks.indexOf(m.task)), 'pointer-events': 'none' });
+    node('rect', { x: left + start / extent * plot, y: overview - 3, width: span / extent * plot, height: Math.max(20, tasks.length * 9) + 6, fill: 'none', stroke: 'var(--fg)', 'pointer-events': 'none' });
+    const hit = node('rect', { x: left, y: overview - 6, width: plot, height: Math.max(26, tasks.length * 9) + 12, fill: 'transparent', class: 'mark' }); hit.addEventListener('click', event => { const bounds = svg.getBoundingClientRect(), localX = (event.clientX - bounds.left) * width / bounds.width; pan.value = Math.round(Math.max(0, Math.min(+pan.max, (localX - left) / plot * extent - span / 2))); draw(); if(options.onPan)options.onPan(+pan.value); });
+    }
+}
+for (const kind of ['starts', 'deadlines']) {
+    const button = get(`toggle-${kind}`);
+    button.addEventListener('click', () => {
+        if (kind === 'starts') showStarts = !showStarts; else showDeadlines = !showDeadlines;
+        const enabled = kind === 'starts' ? showStarts : showDeadlines;
+        button.setAttribute('aria-pressed', String(enabled));
+        button.textContent = `${kind === 'starts' ? 'Expected starts' : 'Deadlines'}: ${enabled ? 'on' : 'off'}`;
+        draw();
+    });
+}
+zoom.addEventListener('input', draw); pan.addEventListener('input', draw);
+function buildExport() {
+    const [, , width, height] = svg.getAttribute('viewBox').split(/\s+/).map(Number);
+    const copy = svg.cloneNode(true);
+    // Embed typography and use paper-friendly colors on a transparent background.
+    const sources = [svg, ...svg.querySelectorAll('*')], targets = [copy, ...copy.querySelectorAll('*')];
+    const paperColors = { '--miss': '#c43d3d', '--fg': '#20242b', '--border': '#d4d9df', '--muted': '#e8ebef', '--idle': '#d8d8d8', '--series1': '#4386cd', '--series2': '#dd9551', '--series3': '#65a97b', '--series4': '#a17cc8', '--series5': '#cd7889', '--series6': '#64a5aa' };
+    const properties = ['fill', 'stroke', 'stroke-width', 'opacity', 'fill-opacity', 'stroke-opacity', 'font-family', 'font-size', 'font-weight', 'text-anchor'];
+    sources.forEach((source, i) => {
+        const style = getComputedStyle(source), target = targets[i];
+        target.removeAttribute('class'); target.removeAttribute('style');
+        for (const property of properties) { const value = style.getPropertyValue(property); if (value) target.setAttribute(property, value); }
+        for (const property of ['fill', 'stroke']) {
+            const raw = source.getAttribute(property) || '';
+            const match = raw.match(/^var\((--[\w-]+)\)$/);
+            if (match && paperColors[match[1]]) target.setAttribute(property, paperColors[match[1]]);
+        }
+        if (source.tagName.toLowerCase() === 'text') target.setAttribute('fill', paperColors['--fg']);
+    });
+    const foreground = paperColors['--fg'];
+    const title = get('summary').textContent;
+    const maxChars = Math.max(20, Math.floor((width - 32) / 8));
+    const lines = [];
+    for (let offset = 0; offset < title.length; offset += maxChars)lines.push(title.slice(offset, offset + maxChars));
+    lines.push(`Time window: ${pan.value}–${+pan.value + +zoom.value}`);
+    const header = lines.length * 22 + 20;
+    const output = document.createElementNS(ns, 'svg');
+    output.setAttribute('width', width); output.setAttribute('height', height + header);
+    output.setAttribute('viewBox', `0 0 ${width} ${height + header}`);
+    if (get('export-background').value === 'white') node('rect', { x: 0, y: 0, width, height: height + header, fill: '#ffffff' }, undefined, output);
+    node('title', {}, 'Simulation timeline — ' + title, output);
+    lines.forEach((line, i) => node('text', { x: 16, y: 24 + i * 22, fill: foreground, 'font-family': 'system-ui, sans-serif', 'font-size': 14 }, line, output));
+    const group = node('g', { transform: `translate(0 ${header})` }, undefined, output);
+    while (copy.firstChild) group.appendChild(copy.firstChild);
+    const content = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(output);
+    return { content, width, height: height + header, name: `timeline-${pan.value}-${+pan.value + +zoom.value}` };
+}
+function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); link.href = url; link.download = name;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function exportSvg() {
+    const result = buildExport();
+    downloadBlob(new Blob([result.content], { type: 'image/svg+xml;charset=utf-8' }), result.name + '.svg');
+}
+async function exportPng() {
+    const button = get('export-png'); button.disabled = true;
+    let url;
+    try {
+        const result = buildExport();
+        url = URL.createObjectURL(new Blob([result.content], { type: 'image/svg+xml;charset=utf-8' }));
+        const image = new Image();
+        await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(Error('Could not render the timeline image.')); image.src = url; });
+        // Export at 2x resolution, bounded for large task counts and browser canvas limits.
+        const scale = Math.min(2, 8192 / result.width, 8192 / result.height, Math.sqrt(16000000 / (result.width * result.height)));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.floor(result.width * scale)); canvas.height = Math.max(1, Math.floor(result.height * scale));
+        const context = canvas.getContext('2d');
+        if (!context) throw Error('Canvas export is unavailable in this browser.');
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) throw Error('Could not create PNG. Try a smaller view or export SVG.');
+        downloadBlob(blob, result.name + '.png');
+        get('error').textContent = '';
+    } catch (error) { get('error').textContent = `Could not export PNG: ${error.message}`; }
+    finally { if (url) URL.revokeObjectURL(url); button.disabled = total === 0; }
+}
+get('export-svg').addEventListener('click', exportSvg);
+get('export-png').addEventListener('click', exportPng);
+const fileInput = get('file'); let loadVersion = 0;
+get('load').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0]; if (!file) return; const version = ++loadVersion;
+    try { const candidate = JSON.parse(await file.text()); if (version === loadVersion) loadData(candidate, file.name); }
+    catch (error) { if (version === loadVersion) get('error').textContent = `Could not load JSON: ${error.message}`; }
+    finally { if (version === loadVersion) fileInput.value = ''; }
+});
+try { const initial = JSON.parse(get('results').textContent); loadData(initial || data, initial ? 'Embedded results' : 'Load a simulation JSON file'); }
+catch (error) { loadData(data, 'Load a simulation JSON file'); get('error').textContent = error.message; }
+let lastWidth = 0; const observer = new ResizeObserver(() => { if (root.clientWidth !== lastWidth) { lastWidth = root.clientWidth; draw(); } }); observer.observe(root); draw();
+
+if(options.comparison){
+ for(const child of root.children)child.hidden=child!==svg && child!==get('error');
+ root.style.gap='0';
+}
+
+return {
+ load:loadData,
+ exportSVG:exportSvg,
+ exportPNG:exportPng,
+ setExportBackground(value){get('export-background').value=value;},
+ getExtent:()=>ownExtent,
+ setView({start,duration,end,taskNames,starts=true,deadlines=true}) {
+  extent=end;tasks=taskNames.slice();showStarts=starts;showDeadlines=deadlines;
+  zoom.max=end;zoom.value=duration;pan.max=Math.max(0,end-duration);pan.value=start;draw();
+ },
+ destroy(){observer.disconnect();scope.replaceChildren();}
+};
+
+};
