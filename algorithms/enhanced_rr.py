@@ -3,13 +3,17 @@ from scheduler_simulator import TaskCycle
 
 
 class EnhancedRR(SchedulerBase):
+    """ERRBTQ for an initial batch with known definition.burst_time values.
+
+    Later arrivals/cycles append to the queue and use the same quantum until
+    reset. This arrival policy extends the paper's initial-batch model.
+    """
     name = "Enhanced Round Robin"
 
     def __init__(self):
         super().__init__()
         self.ready_que : list[TaskCycle] = []
-        self.run_same_task_again = False
-        self.first_time = True
+        self.time_quantum: int | None = None
         
     def add_task_to_ready_queue(self, task_instance: list[TaskCycle] | TaskCycle) -> None:
         """Add a task instance to the scheduler's ready queue."""
@@ -19,50 +23,40 @@ class EnhancedRR(SchedulerBase):
             self.ready_que.append(task_instance)
 
     def tick(self, current_time: int) -> int:
-        # Sort the ready queue based on execution time (shortest first)
-        if not self.run_same_task_again and self.first_time:
-            self.ready_que.sort(key=lambda task: task.definition.burst_time)
-            self.first_time = False
-    
-        if len(self.ready_que) == 0:
+        if not self.ready_que:
             return self.pass_idle_time(current_time)
-        
-        median_burst_time = self.calculate_median([task.definition.burst_time for task in self.ready_que])
+
+        # ERRBTQ initializes once from the first non-empty batch. Use the
+        # declared burst times as the known bursts, not actual cycle durations.
+        if self.time_quantum is None:
+            self.ready_que.sort(key=lambda task: task.definition.burst_time)
+            self.time_quantum = self.calculate_median(
+                [task.definition.burst_time for task in self.ready_que]
+            )
 
         selected_task = self.ready_que.pop(0)
-        if selected_task:
-            time_consumed = selected_task.execute(current_time, median_burst_time)
+        time_consumed = selected_task.execute(current_time, self.time_quantum)
+        if selected_task.is_completed():
+            self.record_finished_task_cycle(selected_task)
+        elif selected_task.remaining_burst_time <= self.time_quantum:
+            # Continue this cycle before switching to another process.
+            self.ready_que.insert(0, selected_task)
+        else:
+            self.ready_que.append(selected_task)
+        return time_consumed
 
-            if not selected_task.is_completed():
-                # Check if the task's remaining time is less than or equal to the median burst time
-                if selected_task.remaining_burst_time <= median_burst_time:
-                    # If yes, add it to the front of the ready queue
-                    # self.run_this_task = selected_task
-                    self.ready_que.insert(0, selected_task)
-                    self.run_same_task_again = True
-                else:
-                    # If not, add it to the end of the ready queue
-                    self.ready_que.append(selected_task)
-                    self.run_same_task_again = False
-            
-            else:
-                # If the task is finished, collect its timeline.
-                self.record_finished_task_cycle(selected_task)
-                
-            return time_consumed
-        
-        # No task was executed, delta time executed. Return 0 carry-over.
-        return self.pass_idle_time(current_time)
-    
-    def reset(self):
-        return super().reset()
-    
+    def reset(self) -> None:
+        super().reset()
+        self.ready_que.clear()
+        self.time_quantum = None
+
     def info(self) -> str:
         return f"{self.name} - Enhanced Scheduling based on Median Burst Time)"
 
-    def calculate_median(self, data: list[int]) -> float:
+    def calculate_median(self, data: list[int]) -> int:
+        """Integer-time adaptation: nearest integer, with half ties to even."""
         if not data:
-            return 0.0
+            raise ValueError("Cannot calculate a quantum from an empty batch.")
         sorted_data = sorted(data)
         n = len(sorted_data)
         mid = n // 2
