@@ -32,6 +32,15 @@
                 "default_time_quantum": 10,
                 "alpha": 0.5
             }
+        },
+        {
+            "name": "ProposedScheduler_2",
+            "type": "proposed_2",
+            "parameters": {
+                "default_time_quantum": 10,
+                "alpha": 0.5,
+                "aging_factor": 1.0
+            }
         }
     ],
     "defaults": {

@@ -30,6 +30,8 @@ class ProposedScheduler_1(SchedulerBase):
     def reset(self) -> None:
         super().reset()
         self.ready_que = []
+        self.ema_burst_times = {}
+        self.run_times = {}
 
     def get_name(self) -> str:
         return f"EMA-One-Stage-Quantum Scheduler, alpha={self.alpha})"

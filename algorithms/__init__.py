@@ -4,6 +4,7 @@ from .round_robin import RoundRobinScheduler, create_round_robin_from_config
 from .hadqrr import HADQRRScheduler, create_hadqrr_from_config
 from .enhanced_rr import EnhancedRR, create_err_scheduler_from_config
 from .proposed_1 import ProposedScheduler_1, create_proposed_scheduler_1_from_config
+from .proposed_2 import ProposedScheduler_2, create_proposed_scheduler_2_from_config
 
 
 def create_scheduler_from_config(config: dict) -> 'SchedulerBase':
@@ -20,6 +21,8 @@ def create_scheduler_from_config(config: dict) -> 'SchedulerBase':
         "hadqrr": (create_hadqrr_from_config, {"default_time_quantum", "history_length"}),
         "enhanced_rr": (create_err_scheduler_from_config, set()),
         "proposed_1": (create_proposed_scheduler_1_from_config, {"default_time_quantum", "alpha"}),
+        "proposed_2": (create_proposed_scheduler_2_from_config, {"default_time_quantum", "alpha", "aging_factor"}),
+
     }
     scheduler_type = scheduler_type.lower()
     if scheduler_type not in factories:
