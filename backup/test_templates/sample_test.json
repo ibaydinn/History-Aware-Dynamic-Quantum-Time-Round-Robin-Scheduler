@@ -3,36 +3,6 @@
         "name": "Burst-time variation",
         "description": "Compare scheduler behavior when actual burst times increase and then return to their initial values."
     },
-    "schedulers": [
-        {
-            "name": "RoundRobin",
-            "type": "round_robin",
-            "parameters": {
-                "time_quantum": 10
-            }
-        },
-        {
-            "name": "HADQRR",
-            "type": "hadqrr",
-            "parameters": {
-                "default_time_quantum": 10,
-                "history_length": 2
-            }
-        },
-        {
-            "name": "EnhancedRR",
-            "type": "enhanced_rr",
-            "parameters": {}
-        },
-        {
-            "name": "ProposedScheduler_1",
-            "type": "proposed_1",
-            "parameters": {
-                "default_time_quantum": 10,
-                "alpha": 0.5
-            }
-        }
-    ],
     "tests": [
         {
             "number": 1,

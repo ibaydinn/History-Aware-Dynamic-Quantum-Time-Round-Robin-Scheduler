@@ -11,28 +11,33 @@ import argparse
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Run scheduling simulations with different algorithms.")
     parser.add_argument("--input", type=str, required=True, help="Path to the input JSON file containing task definitions.")
+    parser.add_argument("--schedulers", type=str, required=True, help="Path to the scheduler configuration JSON file.")
     parser.add_argument("--output", type=str, required=True, help="Path to the output folder where results and metrics will be saved.")
     parser.add_argument("--multiple", action="store_true", help="Set this flag if the input file contains multiple test cases.")
 
     return parser.parse_args()
 
-def test_runner(input_file: str, output_folder: str) -> None:
+def test_runner(input_file: str, output_folder: str, schedulers_file: str) -> None:
     with open(input_file, "r", encoding="utf-8") as f:
         test_data = json.load(f)
     if not isinstance(test_data, dict):
         raise ValueError("Input must be a JSON object.")
-    for key in ("schedulers", "tests"):
-        if not isinstance(test_data.get(key), list) or not test_data[key]:
-            raise ValueError(f"{key} must be a non-empty list.")
+    if not isinstance(test_data.get("tests"), list) or not test_data["tests"]:
+        raise ValueError("tests must be a non-empty list.")
+    with open(schedulers_file, "r", encoding="utf-8") as f:
+        scheduler_data = json.load(f)
+    scheduler_configs = scheduler_data.get("schedulers") if isinstance(scheduler_data, dict) else None
+    if not isinstance(scheduler_configs, list) or not scheduler_configs:
+        raise ValueError("Scheduler configuration must contain a non-empty schedulers list.")
 
     metadata = test_data.get("metadata", {})
     if not isinstance(metadata, dict):
         raise ValueError("metadata must be a JSON object.")
 
-    schedulers = [create_scheduler_from_config(config) for config in test_data["schedulers"]]
+    schedulers = [create_scheduler_from_config(config) for config in scheduler_configs]
     # The index distinguishes configurations even if their names sanitize identically.
     filenames = []
-    for index, (config, scheduler) in enumerate(zip(test_data["schedulers"], schedulers), 1):
+    for index, (config, scheduler) in enumerate(zip(scheduler_configs, schedulers), 1):
         label = config.get("name", scheduler.get_name())
         slug = re.sub(r"[^A-Za-z0-9_-]+", "_", label).strip("_")[:80] or "scheduler"
         filenames.append(f"{index:03d}_{slug}")
@@ -96,16 +101,16 @@ def main():
         # Iterate over all JSON files in the directory
         for json_file in input_dir.glob("*.json"):
             # Ignore the manifest file if present
-            if json_file.name == "manifest.json":
+            if json_file.name == "manifest.json" or json_file.resolve() == Path(args.schedulers).resolve():
                 continue
             output_subdir = Path(args.output) / json_file.stem
             output_subdir.mkdir(parents=True, exist_ok=True)
             print(f"Running test runner for {json_file}...")
-            test_runner(str(json_file), str(output_subdir))
+            test_runner(str(json_file), str(output_subdir), args.schedulers)
         
     else:
         # Run the test runner with the provided input and output paths
-        test_runner(args.input, args.output)
+        test_runner(args.input, args.output, args.schedulers)
 
 
 if __name__ == "__main__":

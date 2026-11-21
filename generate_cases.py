@@ -376,9 +376,6 @@ def build(config: dict[str, Any], override_seed: int | None = None) -> tuple[dic
     metadata = config.get("metadata")
     if not isinstance(metadata, dict) or not all(isinstance(metadata.get(k), str) for k in ("name", "description")):
         raise ValueError("metadata requires name and description strings")
-    schedulers = config.get("schedulers")
-    if not isinstance(schedulers, list) or not schedulers:
-        raise ValueError("schedulers must be a nonempty list")
     scenarios = config.get("scenarios")
     if not isinstance(scenarios, list) or not scenarios:
         raise ValueError("scenarios must be a nonempty list")
@@ -387,7 +384,7 @@ def build(config: dict[str, Any], override_seed: int | None = None) -> tuple[dic
         raise ValueError("defaults must be an object")
 
     result = {"metadata": {"name": metadata["name"], "description": metadata["description"]},
-              "schedulers": schedulers, "tests": []}
+              "tests": []}
     manifest = {"seed": seed, "tests": []}
     used_ids: set[str] = set()
     # Each repetition in a workload group must have a distinct NOMINAL task set.
@@ -457,7 +454,7 @@ def write_scenario_output(
     """Write ONE simulator configuration per scenario, with ALL repeats in `tests`.
 
     Example: output_dir/util75_fixed.json with tests numbered 1, 2, ..., repeats.
-    All configured schedulers appear once at the top of each scenario file.
+    Scheduler configurations are supplied separately to the test runner.
     """
     if len(generated["tests"]) != len(manifest["tests"]):
         raise ValueError("generated tests and manifest have different lengths")
@@ -487,7 +484,6 @@ def write_scenario_output(
                 "name": f"{generated['metadata']['name']} | {scenario_id}",
                 "description": generated["metadata"]["description"],
             },
-            "schedulers": generated["schedulers"],
             "tests": scenario_tests,
         }
         planned.append((output_dir / f"{scenario_id}.json", scenario_config))
