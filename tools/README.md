@@ -116,3 +116,9 @@ Remove individual panels or use Clear all. This tool works offline.
 `timeline_common.js` supplies the shared renderer, validation, markers, and exports
 for both `timeline_viewer.html` and `timeline_compare.html`; keep it beside both
 HTML files. The comparison page also requires `timeline_compare.js`.
+
+The metric viewer also accepts the runner's `scene_summary/*_scene.json` reports.
+They compare equal-weight per-test averages across all tests using scene input hashes.
+Counts are averages per test and may be fractional.
+The legend shows test counts. Baseline comparison rejects a mixture of scene
+summaries and individual-test reports.

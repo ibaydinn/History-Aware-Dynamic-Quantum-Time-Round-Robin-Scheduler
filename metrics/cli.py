@@ -31,6 +31,15 @@ def main(argv=None):
         print(f"Average {name.replace('_', ' ')}: {_format(overall['average_' + name])}")
     print(f"Deadlines missed: {overall['deadline_miss_count']}")
     print(f"Average deadline miss time (missed cycles): {_format(overall['average_deadline_miss_time'])}")
+    print(f"Deadline miss rate: {_format(overall['deadline_miss_rate'])}%")
+    print(f"Context switches per cycle: {_format(overall['context_switches_per_cycle'])}")
+    print("\nOverall cycle statistics (population std dev; interpolated P95):")
+    for name, stats in overall["statistics"].items():
+        label = name.replace("_", " ")
+        if name == "deadline_miss_time":
+            label += " (missed cycles only)"
+        values = ", ".join(f"{key}={_format(value)}" for key, value in stats.items())
+        print(f"  {label}: {values}")
     print("\nPer task (mean times, in simulation units):")
     for item in report["per_task"]:
         print(f"  {item['task_name']}: cycles={item['cycle_count']}, "

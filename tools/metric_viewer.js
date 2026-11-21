@@ -18,11 +18,12 @@ function parseReport(report, filename) {
   if (!report || typeof report !== 'object' || !report.overall || typeof report.overall !== 'object') {
     throw Error('Expected a metrics report with an overall object. Use calculate_metrics on simulation results first.');
   }
+  const averagedScene = report.scope === 'scene' && report.aggregation === 'equal_weight_tests';
   const overall = {};
   for (const key of ['cycle_count', ...METRICS.map(m => m[0])]) {
     const value = report.overall[key];
     if (value !== null && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) throw Error(`Invalid or missing ${key}.`);
-    if (key.endsWith('_count') && !Number.isSafeInteger(value)) throw Error(`${key} must be a non-negative integer.`);
+    if (key.endsWith('_count') && (value === null || (!averagedScene && !Number.isSafeInteger(value)))) throw Error(`${key} must be a non-negative integer.`);
     overall[key] = value;
   }
   if (overall.deadline_miss_count > overall.cycle_count) throw Error('Deadline miss count exceeds cycle count.');
@@ -30,7 +31,10 @@ function parseReport(report, filename) {
   const name = typeof scheduler?.name === 'string' && scheduler.name.trim() ? scheduler.name : filename.replace(/\.json$/i, '');
   return {
     overall, label: name, filename,
-    hash: typeof report.task_input_hash === 'string' && report.task_input_hash ? report.task_input_hash : null
+    scope: report.scope === 'scene' ? 'scene' : 'test',
+    aggregation: averagedScene ? 'equal_weight_tests' : 'pooled',
+    testCount: report.scope === 'scene' ? report.test_count : null,
+    hash: typeof report.scene_input_hash === 'string' ? report.scene_input_hash : typeof report.task_input_hash === 'string' && report.task_input_hash ? report.task_input_hash : null
   };
 }
 // Expose the pure comparison rules to Node's built-in test runner.
@@ -71,13 +75,16 @@ if (typeof document !== 'undefined') (() => {
     $('empty').hidden = runs.length > 0;
     $('explanation').textContent = relative
       ? 'Improvement = (baseline − result) / baseline × 100. Positive is better; negative is worse. Zero → zero is 0%; a nonzero result against zero is N/A.'
-      : 'Each chart shows one overall metric. Lower values are better. Cycle counts are shown with each run.';
+      : (runs.some(r=>r.aggregation==='equal_weight_tests') ? 'Scene values are averages per test, with equal weight for each test (including counts). Lower values are better.' : 'Each chart shows one overall metric. Lower values are better. Cycle counts are shown with each run.');
     const hashes = new Set(runs.map(r => r.hash).filter(Boolean));
     const notes = [];
     if (hashes.size > 1) notes.push('Input hashes differ: these runs use different task inputs.');
     if (runs.length > 1 && runs.some(r => !r.hash)) notes.push('Some reports have no input hash; identical inputs cannot be verified.');
     if (new Set(runs.map(r => r.overall.cycle_count)).size > 1) notes.push('Completed cycle counts differ.');
-    const mismatch = hashes.size > 1 || new Set(runs.map(r => r.overall.cycle_count)).size > 1;
+    if (new Set(runs.map(r=>r.scope)).size > 1) notes.push('Scene summaries and individual tests cannot be compared as equivalent runs.');
+    const mixedAggregation = new Set(runs.map(r=>r.aggregation)).size > 1;
+    if(mixedAggregation)notes.push('Aggregation methods differ. Regenerate scene reports to compare equal-weight test averages.');
+    const mismatch = mixedAggregation || new Set(runs.map(r=>r.scope)).size > 1 || hashes.size > 1 || new Set(runs.map(r => r.overall.cycle_count)).size > 1;
     if (relative && mismatch) notes.push('Improvement charts are unavailable until the loaded runs have matching inputs and cycle counts.');
     if (relative && runs.length === 1) notes.push('Load another scheduler report to compare with the baseline.');
     $('notice').textContent = notes.join(' ');
@@ -85,7 +92,7 @@ if (typeof document !== 'undefined') (() => {
     for (const run of runs) {
       const item = element('div', null, $('runs'), { class: 'run' });
       const swatch = element('i', null, item, { class: 'swatch', 'aria-hidden': 'true' }); swatch.style.background = run.color;
-      const description = element('span', `${run.label} · ${run.overall.cycle_count} cycles`, item);
+      const description = element('span', `${run.label}${run.scope==='scene'?` · ${run.testCount} tests`: ''} · ${format(run.overall.cycle_count)} ${run.aggregation==='equal_weight_tests'?'cycles/test':'cycles'}`, item);
       description.title = `${run.filename}\n${run.hash || 'No input hash'}`;
       const remove = element('button', '×', item, { type: 'button', 'aria-label': `Remove ${run.label}` });
       remove.disabled = loading;
@@ -110,7 +117,7 @@ if (typeof document !== 'undefined') (() => {
         button.addEventListener('click', () => exportCharts(type, [key]));
       }
       element('h2', title, card);
-      element('p', relative ? '% improvement against selected baseline' : units, card, { class: 'hint' });
+      element('p', relative ? '% improvement against selected baseline' : units + (displayed[0]?.aggregation==='equal_weight_tests'?' · average per test':''), card, { class: 'hint' });
       const svg = document.createElementNS(ns, 'svg'); card.appendChild(svg);
       const height = 54 + displayed.length * 44, left = 30, right = 490, width = right - left;
       charts.push({ key, title, units, svg, height, checkbox });
@@ -187,7 +194,7 @@ if (typeof document !== 'undefined') (() => {
     for (const chart of items) {
       y += 20;
       textLine(chart.title, 24, 17);
-      textLine(mode === 'relative' ? '% improvement against selected baseline' : chart.units);
+      textLine(mode === 'relative' ? '% improvement against selected baseline' : chart.units + (runs[0]?.aggregation==='equal_weight_tests'?' · average per test':''));
       const copy = chart.svg.cloneNode(true);
       copy.setAttribute('x', 24); copy.setAttribute('y', y);
       copy.setAttribute('width', 650); copy.setAttribute('height', chart.height);

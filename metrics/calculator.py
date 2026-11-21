@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from math import isclose, isfinite
+from statistics import mean, median, pstdev
 
 
 _TIME_METRICS = ("turnaround_time", "response_time", "waiting_time")
@@ -17,6 +18,20 @@ def _time(value, field):
 def _averages(totals, count):
     return {f"average_{name}": totals[name] / count if count else None
             for name in _TIME_METRICS}
+
+
+def _statistics(values):
+    """Population statistics; P95 interpolates at index (n - 1) * 0.95."""
+    values = sorted(values)
+    count = len(values)
+    if not count:
+        return {"count": 0, **dict.fromkeys(("mean", "min", "max", "median", "std_dev", "p95"))}
+    position = (count - 1) * 0.95
+    lower = int(position)
+    upper = min(lower + 1, count - 1)
+    p95 = values[lower] + (values[upper] - values[lower]) * (position - lower)
+    return {"count": count, "mean": mean(values), "min": values[0], "max": values[-1],
+            "median": median(values), "std_dev": pstdev(values), "p95": p95}
 
 
 def calculate_metrics(results: dict) -> dict:
@@ -139,7 +154,14 @@ def calculate_metrics(results: dict) -> dict:
         "task_input_hash": results.get("task_input_hash"),
         "overall": {"cycle_count": count, "context_switch_count": switches,
                     **_averages(totals, count), "deadline_miss_count": missed_count,
-                    "average_deadline_miss_time": miss_total / missed_count if missed_count else 0},
+                    "average_deadline_miss_time": miss_total / missed_count if missed_count else 0,
+                    "deadline_miss_rate": 100 * missed_count / count if count else 0,
+                    "context_switches_per_cycle": switches / count if count else None,
+                    "statistics": {
+                        **{name: _statistics(c[name] for c in per_cycle) for name in _TIME_METRICS},
+                        "deadline_miss_time": _statistics(c["deadline_miss_time"] for c in per_cycle
+                                                          if c["deadline_missed"]),
+                    }},
         "per_task": [{"task_name": name, "cycle_count": items["cycle_count"],
                       **_averages(items, items["cycle_count"]),
                       "deadline_miss_count": items["deadline_miss_count"],

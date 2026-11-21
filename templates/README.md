@@ -24,6 +24,9 @@ Both files include the topic `metadata` and `test_number`. Existing scheduler
 configuration and task input hashes remain available for matching comparisons.
 Tests run sequentially, with one simulator created for the current test.
 
-Cross-test averages are not calculated yet. These identities let a later
-aggregation module group tests by topic and scheduler configuration without
-combining different schedulers or confusing individual test results.
+After all tests complete, `scene_summary/` contains one `*_scene.json` report per
+scheduler configuration. Load these reports together in the metric viewer to
+compare the entire scene. `overall` averages each metric across tests with equal
+weight, including switch/miss counts and rates. `per_test_statistics` describes
+variation between tests. Tests with no deadline misses contribute zero to average
+lateness. Undefined metrics are excluded, with their sample counts recorded.

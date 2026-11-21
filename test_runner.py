@@ -1,4 +1,4 @@
-from metrics import calculate_metrics
+from metrics import calculate_metrics, aggregate_scene_metrics
 from scheduler_simulator import Simulator
 from scheduler_simulator.task_definition import create_task_from_json
 from pathlib import Path
@@ -65,6 +65,20 @@ def test_runner(input_file: str, output_folder: str) -> None:
             for kind, data in (("results", results), ("metrics", metrics_report)):
                 with (folder / f"{filename}_{kind}.json").open("w", encoding="utf-8") as f:
                     json.dump(data, f, indent=4, ensure_ascii=False, allow_nan=False)
+
+    # Read saved metrics one test at a time; do not retain all simulation outputs.
+    summary_folder = Path(output_folder) / "scene_summary"
+    summary_folder.mkdir(exist_ok=True)
+    for filename in filenames:
+        def reports():
+            for test in tests:
+                path = Path(output_folder) / str(test["number"]) / f"{filename}_metrics.json"
+                with path.open(encoding="utf-8") as f:
+                    yield json.load(f)
+        summary = aggregate_scene_metrics(reports())
+        with (summary_folder / f"{filename}_scene.json").open("w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=4, ensure_ascii=False, allow_nan=False)
+    print(f"Scene summaries saved to {summary_folder}")
 
 
 def main():
