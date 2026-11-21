@@ -59,11 +59,9 @@ def test_runner(input_file: str, output_folder: str) -> None:
             simulator.set_scheduler(scheduler)
             simulator.run()
             results = simulator.get_results()
+            results["metadata"] = metadata
+            results["test_number"] = number
             metrics_report = calculate_metrics(results)
-            # Keep topic and test identity with each output for later aggregation.
-            for report in (results, metrics_report):
-                report["metadata"] = metadata
-                report["test_number"] = number
             for kind, data in (("results", results), ("metrics", metrics_report)):
                 with (folder / f"{filename}_{kind}.json").open("w", encoding="utf-8") as f:
                     json.dump(data, f, indent=4, ensure_ascii=False, allow_nan=False)

@@ -8,6 +8,10 @@ def create_hadqrr_from_config(config: dict) -> 'HADQRRScheduler':
 
 class HADQRRScheduler(SchedulerBase):
     def __init__(self, default_time_quantum: int = 20, history_length: int = 10) -> None:
+        for name, value in (("default_time_quantum", default_time_quantum), ("history_length", history_length)):
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ValueError(f"{name} must be a positive integer.")
+            
         super().__init__()
         self.ready_que: list[TaskCycle] = []
         self.default_time_quantum = default_time_quantum
@@ -86,6 +90,8 @@ class HADQRRScheduler(SchedulerBase):
         super().reset()
         self.ready_que = []
         self.history = {}
+        self.run_times = {}
+        self.mean_burst_times = {}
 
     def get_name(self) -> str:
         return f"HADQRR"

@@ -7,7 +7,7 @@ def create_round_robin_from_config(config: dict) -> 'RoundRobinScheduler':
 
 class RoundRobinScheduler(SchedulerBase):
     def __init__(self, time_quantum: int = 10) -> None:
-        if time_quantum <= 0:
+        if isinstance(time_quantum, bool) or not isinstance(time_quantum, int) or time_quantum <= 0:
             raise ValueError("Time quantum must be a positive integer.")
         
         super().__init__()

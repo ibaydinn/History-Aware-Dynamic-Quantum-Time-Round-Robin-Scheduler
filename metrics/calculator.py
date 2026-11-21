@@ -134,6 +134,7 @@ def calculate_metrics(results: dict) -> dict:
         elif current[2] != previous[2]:
             switches += 1
     return {
+        **{key: deepcopy(results[key]) for key in ("metadata", "test_number") if key in results},
         "scheduler": deepcopy(results.get("scheduler")),
         "task_input_hash": results.get("task_input_hash"),
         "overall": {"cycle_count": count, "context_switch_count": switches,
