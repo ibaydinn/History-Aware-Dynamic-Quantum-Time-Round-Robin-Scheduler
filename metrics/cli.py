@@ -29,8 +29,15 @@ def main(argv=None):
     print(f"Context switches: {overall['context_switch_count']} (cycle changes and cycle/idle transitions)")
     for name in ("turnaround_time", "response_time", "waiting_time"):
         print(f"Average {name.replace('_', ' ')}: {_format(overall['average_' + name])}")
+    print(f"Average slowdown (ratio): {_format(overall['average_slowdown'])}")
+    print(f"P95 slowdown (ratio): {_format(overall['p95_slowdown'])}")
+    print(f"Maximum continuous waiting time: {_format(overall['maximum_continuous_waiting_time'])}")
     print(f"Deadlines missed: {overall['deadline_miss_count']}")
-    print(f"Average deadline miss time (missed cycles): {_format(overall['average_deadline_miss_time'])}")
+    print(f"Mean tardiness (missed cycles): {_format(overall['mean_tardiness_missed_cycles'])}")
+    print(f"Mean tardiness (all cycles): {_format(overall['mean_tardiness_all_cycles'])}")
+    print(f"P95 tardiness (all cycles): {_format(overall['p95_tardiness_all_cycles'])}")
+    print(f"Maximum tardiness: {_format(overall['maximum_tardiness'])}")
+    print(f"Mean normalized tardiness (ratio, all cycles): {_format(overall['mean_normalized_tardiness'])}")
     print(f"Deadline miss rate: {_format(overall['deadline_miss_rate'])}%")
     print(f"Context switches per cycle: {_format(overall['context_switches_per_cycle'])}")
     print("\nOverall cycle statistics (population std dev; interpolated P95):")
@@ -40,14 +47,16 @@ def main(argv=None):
             label += " (missed cycles only)"
         values = ", ".join(f"{key}={_format(value)}" for key, value in stats.items())
         print(f"  {label}: {values}")
-    print("\nPer task (mean times, in simulation units):")
+    print("\nPer task (times in simulation units; slowdown is a ratio):")
     for item in report["per_task"]:
         print(f"  {item['task_name']}: cycles={item['cycle_count']}, "
               f"turnaround={_format(item['average_turnaround_time'])}, "
               f"response={_format(item['average_response_time'])}, "
               f"waiting={_format(item['average_waiting_time'])}, "
+              f"average slowdown={_format(item['average_slowdown'])}, "
+              f"maximum continuous waiting={_format(item['maximum_continuous_waiting_time'])}, "
               f"deadlines missed={item['deadline_miss_count']}, "
-              f"average deadline miss time={_format(item['average_deadline_miss_time'])}")
+              f"mean tardiness (missed cycles)={_format(item['average_deadline_miss_time'])}")
     if args.per_cycle:
         print("\nPer cycle:")
         for item in report["per_cycle"]:
@@ -55,4 +64,6 @@ def main(argv=None):
                   f"turnaround={_format(item['turnaround_time'])}, "
                   f"response={_format(item['response_time'])}, "
                   f"waiting={_format(item['waiting_time'])}, deadline={_format(item['deadline'])}, "
-                  f"deadline miss time={_format(item['deadline_miss_time'])}")
+                  f"deadline miss time={_format(item['deadline_miss_time'])}, "
+                  f"slowdown={_format(item['slowdown'])}, "
+                  f"maximum continuous waiting={_format(item['maximum_continuous_waiting_time'])}")

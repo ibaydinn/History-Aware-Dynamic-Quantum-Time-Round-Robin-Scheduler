@@ -6,6 +6,7 @@ from statistics import mean, median, pstdev
 
 
 _TIME_METRICS = ("turnaround_time", "response_time", "waiting_time")
+_AVERAGED_METRICS = (*_TIME_METRICS, "slowdown")
 
 
 def _time(value, field):
@@ -17,7 +18,7 @@ def _time(value, field):
 
 def _averages(totals, count):
     return {f"average_{name}": totals[name] / count if count else None
-            for name in _TIME_METRICS}
+            for name in _AVERAGED_METRICS}
 
 
 def _statistics(values):
@@ -64,7 +65,7 @@ def calculate_metrics(results: dict) -> dict:
         deadlines[name] = period if period > 0 else burst
     missed_count, miss_total = 0, 0
     timeline, identities, grouped = [], set(), {}
-    totals = dict.fromkeys(_TIME_METRICS, 0)
+    totals = dict.fromkeys(_AVERAGED_METRICS, 0)
     count = 0
     per_cycle = []
     for cycle in results["task_cycles"]:
@@ -107,7 +108,10 @@ def calculate_metrics(results: dict) -> dict:
         if waiting < 0:
             raise ValueError("Actual execution exceeds turnaround time.")
         values = {"turnaround_time": end - arrival,
-                  "response_time": start - arrival, "waiting_time": waiting}
+                  "response_time": start - arrival, "waiting_time": waiting,
+                  "slowdown": (end - arrival) / actual}
+        longest_wait = max([start - arrival] +
+                           [right[0] - left[1] for left, right in zip(execution, execution[1:])])
         if name not in deadlines:
             raise ValueError(f"Missing task definition for {name}.")
         deadline = arrival + deadlines[name]
@@ -116,11 +120,14 @@ def calculate_metrics(results: dict) -> dict:
         missed_count += int(missed)
         miss_total += miss_time
         per_cycle.append({"task_name": name, "cycle_number": number, **values,
+                          "maximum_continuous_waiting_time": longest_wait,
                           "deadline": deadline, "deadline_missed": missed,
                           "deadline_miss_time": miss_time})
-        task = grouped.setdefault(name, {"cycle_count": 0, **dict.fromkeys(_TIME_METRICS, 0)})
+        task = grouped.setdefault(name, {"cycle_count": 0, **dict.fromkeys(_AVERAGED_METRICS, 0)})
         task["deadline_miss_count"] = task.get("deadline_miss_count", 0) + int(missed)
         task["deadline_miss_total"] = task.get("deadline_miss_total", 0) + miss_time
+        task["maximum_continuous_waiting_time"] = max(
+            task.get("maximum_continuous_waiting_time", 0), longest_wait)
         task["cycle_count"] += 1
         count += 1
         for metric, value in values.items():
@@ -148,22 +155,38 @@ def calculate_metrics(results: dict) -> dict:
             switches += int(previous[2] is not None) + int(current[2] is not None)
         elif current[2] != previous[2]:
             switches += 1
+    continuous_waiting = _statistics(c["maximum_continuous_waiting_time"] for c in per_cycle)
+    slowdown = _statistics(c["slowdown"] for c in per_cycle)
+    tardiness = _statistics(c["deadline_miss_time"] for c in per_cycle)
+    normalized_tardiness = _statistics(
+        c["deadline_miss_time"] / deadlines[c["task_name"]] for c in per_cycle)
     return {
         **{key: deepcopy(results[key]) for key in ("metadata", "test_number") if key in results},
         "scheduler": deepcopy(results.get("scheduler")),
         "task_input_hash": results.get("task_input_hash"),
         "overall": {"cycle_count": count, "context_switch_count": switches,
+                    "p95_slowdown": slowdown["p95"],
+                    "maximum_continuous_waiting_time": continuous_waiting["max"],
                     **_averages(totals, count), "deadline_miss_count": missed_count,
                     "average_deadline_miss_time": miss_total / missed_count if missed_count else 0,
+                    "mean_tardiness_missed_cycles": miss_total / missed_count if missed_count else 0,
+                    "mean_tardiness_all_cycles": tardiness["mean"],
+                    "p95_tardiness_all_cycles": tardiness["p95"],
+                    "maximum_tardiness": tardiness["max"],
+                    "mean_normalized_tardiness": normalized_tardiness["mean"],
                     "deadline_miss_rate": 100 * missed_count / count if count else 0,
                     "context_switches_per_cycle": switches / count if count else None,
                     "statistics": {
-                        **{name: _statistics(c[name] for c in per_cycle) for name in _TIME_METRICS},
+                        "maximum_continuous_waiting_time": continuous_waiting,
+                        "tardiness_all_cycles": tardiness,
+                        "normalized_tardiness": normalized_tardiness,
+                        **{name: _statistics(c[name] for c in per_cycle) for name in _AVERAGED_METRICS},
                         "deadline_miss_time": _statistics(c["deadline_miss_time"] for c in per_cycle
                                                           if c["deadline_missed"]),
                     }},
         "per_task": [{"task_name": name, "cycle_count": items["cycle_count"],
                       **_averages(items, items["cycle_count"]),
+                      "maximum_continuous_waiting_time": items["maximum_continuous_waiting_time"],
                       "deadline_miss_count": items["deadline_miss_count"],
                       "average_deadline_miss_time": (items["deadline_miss_total"] / items["deadline_miss_count"]
                                                      if items["deadline_miss_count"] else 0)}

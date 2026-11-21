@@ -1,3 +1,4 @@
+from math import isfinite
 from scheduler_simulator import SchedulerBase
 from scheduler_simulator import TaskCycle
 
@@ -10,8 +11,9 @@ class ProposedScheduler_1(SchedulerBase):
     def __init__(self, default_time_quantum: int = 20, alpha: float = 0.5) -> None:
         if isinstance(default_time_quantum, bool) or not isinstance(default_time_quantum, int) or default_time_quantum <= 0:
             raise ValueError("Time quantum must be a positive integer.")
-        if isinstance(alpha, bool) or not isinstance(alpha, float) or alpha <= 0:
-            raise ValueError("Alpha must be a positive float.")
+        if (isinstance(alpha, bool) or not isinstance(alpha, (int, float))
+                or not isfinite(alpha) or not 0 < alpha <= 1):
+            raise ValueError("Alpha must be a finite number in (0, 1].")
 
         super().__init__()
         self.ready_que: list[TaskCycle] = []

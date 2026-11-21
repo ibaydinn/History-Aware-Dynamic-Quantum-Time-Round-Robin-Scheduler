@@ -34,7 +34,7 @@
             "parameters": {
                 "default_time_quantum": 10,
                 "alpha": 0.5,
-                "aging_factor": 1.0
+                "aging_factor": 0.05
             }
         }
     ]

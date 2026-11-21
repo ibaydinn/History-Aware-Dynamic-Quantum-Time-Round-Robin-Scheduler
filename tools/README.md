@@ -55,12 +55,15 @@ Click **Load metrics JSONs** and select one or more saved `calculate_metrics(res
 reports, such as `simulation_metrics.json`. Loading more files adds runs to the
 comparison. Each run has a consistent color; the scheduler’s `get_name()` result is used directly as its label. Use × to remove a run, or **Clear all** to start again.
 
-- **Direct values** shows six separate charts for context switches, average
-  turnaround, response, waiting, missed-deadline count, and average deadline miss
-  time. The table below provides numeric values. Cycle counts appear beside runs.
+- **Direct values** discovers numeric/null scalar fields from each report's `overall`
+  object and creates a chart for every field in their union. Labels come from field
+  names; nested statistics are not charted. Missing fields in older reports show
+  N/A. New fields automatically appear in charts, the values table, and SVG/PNG
+  export selections without editing the viewer. Axis values use the source metric's
+  units (for example, `deadline_miss_rate` is percent, normalized tardiness is a ratio).
 - **Improvement ±%** lets you select a baseline and shows the other runs using
-  `(baseline − result) / baseline × 100`. Positive means lower/better, negative
-  means higher/worse. Zero against zero is 0%; a nonzero result against a zero
+  `(baseline − result) / baseline × 100`. Positive means a reduction, negative
+  means an increase; whether this is better depends on the metric. Zero against zero is 0%; a nonzero result against a zero
   baseline, or an undefined metric, is N/A. Hover table cells for the raw values.
 
 New metrics reports preserve `scheduler` and `task_input_hash` from the simulation

@@ -91,6 +91,27 @@ the new overall statistics; `--json` and the runner's saved metrics include them
 
 ## Aggregate a scene across tests
 
+### Tardiness metrics
+
+Tardiness is `max(0, completion - deadline)`, measured from the expected arrival
+deadline described above. New `overall` fields:
+
+| Field | Calculation |
+| --- | --- |
+| `mean_tardiness_missed_cycles` | Mean over missed cycles only; zero if none miss. Clearer alias of `average_deadline_miss_time`, which is retained for compatibility. |
+| `mean_tardiness_all_cycles` | Mean over all cycles, including zero for on-time completions. |
+| `p95_tardiness_all_cycles` | Interpolated P95 over all cycles, including zeros. |
+| `maximum_tardiness` | Largest cycle tardiness. |
+| `mean_normalized_tardiness` | Mean of each cycle's `tardiness / (deadline - expected arrival)` over all cycles. A dimensionless ratio, not a percentage. |
+
+The last four fields are `null` for an empty simulation and zero for a nonempty
+simulation with no misses. `statistics.tardiness_all_cycles` and
+`statistics.normalized_tardiness` contain their full cycle distributions.
+`deadline_miss_rate` (%) and `context_switches_per_cycle` remain available.
+All new fields are included in JSON exports and the CLI's overall report.
+
+### Equal-weight test aggregation
+
 `aggregate_scene_metrics(reports)` accepts metric reports for one scheduler
 configuration and topic. The runner calls it after all tests finish.
 
@@ -111,5 +132,38 @@ scheduler. Reports require unique positive test numbers and matching scheduler
 configuration and metadata. Per-cycle records are not needed for aggregation.
 Only scalar per-test values are retained in memory.
 
+This also applies to the new tardiness fields: scene `p95_tardiness_all_cycles`
+means **mean per-test P95 tardiness**, not pooled P95. Scene `maximum_tardiness`
+means **mean per-test maximum tardiness**, not the worst value across all tests.
+The largest test maximum is available as
+`per_test_statistics.maximum_tardiness.max`.
+
 Regenerate older scene reports: the metric viewer refuses baseline comparisons
 between pooled reports and equal-weight reports.
+
+
+## Slowdown and continuous waiting
+
+Each cycle now includes:
+
+- `slowdown = turnaround_time / actual_execution_duration`. The denominator is
+  the sum of execution intervals, not requested/estimated burst time. This is a
+  dimensionless ratio, equal to 1 when there is no waiting.
+- `maximum_continuous_waiting_time`: the largest of the initial wait from expected
+  arrival to first execution and the gaps between successive execution intervals.
+  Contiguous intervals contribute zero. No time after completion is included.
+  Initial waiting includes delays caused by the preceding cycle; it is not limited
+  to time in the ready queue. This measures prolonged waiting, not proof of starvation.
+
+`per_task` includes `average_slowdown` (mean of cycle ratios) and
+`maximum_continuous_waiting_time` (maximum across that task's cycles).
+`overall` includes `average_slowdown`, `p95_slowdown`, and
+`maximum_continuous_waiting_time`. All three are null for empty simulations.
+`overall.statistics.slowdown` summarizes cycle slowdowns;
+`overall.statistics.maximum_continuous_waiting_time` summarizes each cycle's
+longest wait, not all individual waiting intervals.
+
+Scene aggregation retains equal weight per test: `maximum_continuous_waiting_time`
+is the mean of test maxima, and `p95_slowdown` is the mean of test P95s.
+The worst wait across tests is `per_test_statistics.maximum_continuous_waiting_time.max`.
+The CLI prints these values; the viewer discovers the new overall fields automatically.

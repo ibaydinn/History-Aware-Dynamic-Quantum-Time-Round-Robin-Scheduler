@@ -1,13 +1,17 @@
 /* Offline overall-metrics comparison; calculation remains in the Python metrics module. */
 'use strict';
-const METRICS = [
-  ['context_switch_count', 'Context switches', 'count'],
-  ['average_turnaround_time', 'Average turnaround time', 'time units'],
-  ['average_response_time', 'Average response time', 'time units'],
-  ['average_waiting_time', 'Average waiting time', 'time units'],
-  ['deadline_miss_count', 'Deadlines missed', 'count'],
-  ['average_deadline_miss_time', 'Average deadline miss time', 'time units · missed cycles only'],
-];
+// Discover scalar overall fields across all loaded reports; nested statistics are
+// distributions rather than standalone comparison metrics.
+function discoverMetrics(runs) {
+  const keys = new Set(runs.flatMap(run => Object.keys(run.overall)));
+  return [...keys].map(key => {
+    const label = key.replaceAll('_', ' ');
+    return [key, label.charAt(0).toUpperCase() + label.slice(1), 'value'];
+  });
+}
+function metricValue(run, key) {
+  return run.overall[key] ?? null;
+}
 function improvement(base, value) {
   if (base === null || value === null) return null;
   if (base === 0) return value === 0 ? 0 : null;
@@ -15,17 +19,18 @@ function improvement(base, value) {
   return Number.isFinite(result) ? result : null;
 }
 function parseReport(report, filename) {
-  if (!report || typeof report !== 'object' || !report.overall || typeof report.overall !== 'object') {
+  if (!report || typeof report !== 'object' || !report.overall || typeof report.overall !== 'object' || Array.isArray(report.overall)) {
     throw Error('Expected a metrics report with an overall object. Use calculate_metrics on simulation results first.');
   }
   const averagedScene = report.scope === 'scene' && report.aggregation === 'equal_weight_tests';
-  const overall = {};
-  for (const key of ['cycle_count', ...METRICS.map(m => m[0])]) {
-    const value = report.overall[key];
+  const overall = Object.create(null);
+  for (const [key, value] of Object.entries(report.overall)) {
+    if (value !== null && typeof value === 'object') continue;
     if (value !== null && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) throw Error(`Invalid or missing ${key}.`);
     if (key.endsWith('_count') && (value === null || (!averagedScene && !Number.isSafeInteger(value)))) throw Error(`${key} must be a non-negative integer.`);
     overall[key] = value;
   }
+  if (!Object.keys(overall).length) throw Error('Expected at least one scalar overall metric.');
   if (overall.deadline_miss_count > overall.cycle_count) throw Error('Deadline miss count exceeds cycle count.');
   const scheduler = report.scheduler;
   const name = typeof scheduler?.name === 'string' && scheduler.name.trim() ? scheduler.name : filename.replace(/\.json$/i, '');
@@ -38,13 +43,13 @@ function parseReport(report, filename) {
   };
 }
 // Expose the pure comparison rules to Node's built-in test runner.
-if (typeof module !== 'undefined' && module.exports) module.exports = { improvement, parseReport };
+if (typeof module !== 'undefined' && module.exports) module.exports = { improvement, parseReport, discoverMetrics, metricValue };
 if (typeof document !== 'undefined') (() => {
   const $ = id => document.getElementById(id);
   const ns = 'http://www.w3.org/2000/svg';
   let runs = [], nextId = 0, mode = 'direct', baselineId = null, loading = false;
   let charts = [], exporting = false;
-  const selected = new Set(METRICS.map(m => m[0]));
+  const selected = new Set(), knownMetrics = new Set();
   const palette = ['#4386cd', '#dd9551', '#65a97b', '#a17cc8', '#cd7889', '#64a5aa'];
   const color = i => palette[i] || `hsl(${(i * 137.508) % 360} 60% 58%)`;
   const format = value => value === null ? 'N/A' : new Intl.NumberFormat('en', { maximumFractionDigits: 3 }).format(value);
@@ -61,6 +66,10 @@ if (typeof document !== 'undefined') (() => {
     parent.appendChild(n); return n;
   }
   function render() {
+    const metrics = discoverMetrics(runs);
+    for (const [key] of metrics) {
+      if (!knownMetrics.has(key)) { knownMetrics.add(key); selected.add(key); }
+    }
     const base = runs.find(r => r.id === baselineId) || runs[0];
     baselineId = base?.id ?? null;
     const relative = mode === 'relative';
@@ -74,8 +83,8 @@ if (typeof document !== 'undefined') (() => {
     $('clear').disabled = !runs.length || loading;
     $('empty').hidden = runs.length > 0;
     $('explanation').textContent = relative
-      ? 'Improvement = (baseline − result) / baseline × 100. Positive is better; negative is worse. Zero → zero is 0%; a nonzero result against zero is N/A.'
-      : (runs.some(r=>r.aggregation==='equal_weight_tests') ? 'Scene values are averages per test, with equal weight for each test (including counts). Lower values are better.' : 'Each chart shows one overall metric. Lower values are better. Cycle counts are shown with each run.');
+      ? 'Improvement = (baseline − result) / baseline × 100. Positive means a reduction; negative means an increase. Zero → zero is 0%; a nonzero result against zero is N/A.'
+      : (runs.some(r=>r.aggregation==='equal_weight_tests') ? 'Scene values are averages per test, with equal weight for each test (including counts). Metric fields are read from the loaded reports.' : 'Each chart shows one overall metric. Metric fields are read from the loaded reports. Missing values are shown as N/A.');
     const hashes = new Set(runs.map(r => r.hash).filter(Boolean));
     const notes = [];
     if (hashes.size > 1) notes.push('Input hashes differ: these runs use different task inputs.');
@@ -92,7 +101,7 @@ if (typeof document !== 'undefined') (() => {
     for (const run of runs) {
       const item = element('div', null, $('runs'), { class: 'run' });
       const swatch = element('i', null, item, { class: 'swatch', 'aria-hidden': 'true' }); swatch.style.background = run.color;
-      const description = element('span', `${run.label}${run.scope==='scene'?` · ${run.testCount} tests`: ''} · ${format(run.overall.cycle_count)} ${run.aggregation==='equal_weight_tests'?'cycles/test':'cycles'}`, item);
+      const description = element('span', `${run.label}${run.scope==='scene'?` · ${run.testCount} tests`: ''} · ${format(metricValue(run, 'cycle_count'))} ${run.aggregation==='equal_weight_tests'?'cycles/test':'cycles'}`, item);
       description.title = `${run.filename}\n${run.hash || 'No input hash'}`;
       const remove = element('button', '×', item, { type: 'button', 'aria-label': `Remove ${run.label}` });
       remove.disabled = loading;
@@ -103,8 +112,8 @@ if (typeof document !== 'undefined') (() => {
     if (!runs.length || (relative && mismatch)) return;
     const displayed = relative ? runs.filter(r => r.id !== baselineId) : runs;
     if (!displayed.length) return;
-    const valueFor = (run, key) => relative ? improvement(base.overall[key], run.overall[key]) : run.overall[key];
-    for (const [key, title, units] of METRICS) {
+    const valueFor = (run, key) => relative ? improvement(metricValue(base, key), metricValue(run, key)) : metricValue(run, key);
+    for (const [key, title, units] of metrics) {
       const card = element('section', null, $('charts'), { class: 'card' });
       const actions = element('div', null, card, { class: 'card-actions' });
       const label = element('label', null, actions);
@@ -140,7 +149,7 @@ if (typeof document !== 'undefined') (() => {
         }
         const text = relative ? percent(value) : format(value);
         const labelValue = svgNode('text', { x: 505, y: y + 17 }, svg, text);
-        if (relative && value === null) svgNode('title', {}, labelValue, `Baseline: ${format(base.overall[key])}; result: ${format(run.overall[key])}. Percentage unavailable.`);
+        if (relative && value === null) svgNode('title', {}, labelValue, `Baseline: ${format(metricValue(base, key))}; result: ${format(metricValue(run, key))}. Percentage unavailable.`);
       });
     }
     updateExportControls();
@@ -148,13 +157,13 @@ if (typeof document !== 'undefined') (() => {
     element('caption', relative ? 'Overall improvement (%)' : 'Overall values', $('values'));
     const head = element('tr', null, element('thead', null, $('values')));
     element('th', 'Scheduler', head, { scope: 'col' });
-    for (const [, title] of METRICS) element('th', title, head, { scope: 'col' });
+    for (const [, title] of metrics) element('th', title, head, { scope: 'col' });
     const body = element('tbody', null, $('values'));
     for (const run of displayed) {
       const row = element('tr', null, body); element('th', run.label + ' — ' + run.filename, row, { scope: 'row' });
-      for (const [key] of METRICS) {
+      for (const [key] of metrics) {
         const cell = element('td', relative ? percent(valueFor(run, key)) : format(valueFor(run, key)), row);
-        cell.title = relative ? `Baseline: ${format(base.overall[key])}; result: ${format(run.overall[key])}` : String(run.overall[key]);
+        cell.title = relative ? `Baseline: ${format(metricValue(base, key))}; result: ${format(metricValue(run, key))}` : format(metricValue(run, key));
       }
     }
   }
@@ -182,7 +191,7 @@ if (typeof document !== 'undefined') (() => {
     y += 8;
     if (mode === 'relative') {
       wrapped('Baseline: ' + runs.find(r => r.id === baselineId).label);
-      wrapped('Positive = better; negative = worse. N/A = percentage unavailable.');
+      wrapped('Positive = reduction; negative = increase. N/A = percentage unavailable.');
     }
     if ($('notice').textContent) wrapped($('notice').textContent);
     y += 8;
@@ -271,7 +280,7 @@ if (typeof document !== 'undefined') (() => {
       $('error').textContent = errors.join('\n'); render();
     }
   });
-  $('clear').addEventListener('click', () => { runs = []; nextId = 0; baselineId = null; $('error').textContent = ''; render(); });
+  $('clear').addEventListener('click', () => { runs = []; selected.clear(); knownMetrics.clear(); nextId = 0; baselineId = null; $('error').textContent = ''; render(); });
   for (const next of ['direct', 'relative']) $(next).addEventListener('click', () => { mode = next; render(); });
   $('baseline').addEventListener('change', () => { baselineId = Number($('baseline').value); render(); });
   render();

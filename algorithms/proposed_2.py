@@ -1,18 +1,24 @@
+from math import isfinite
 from scheduler_simulator import SchedulerBase
 from scheduler_simulator import TaskCycle
 
 def create_proposed_scheduler_2_from_config(config: dict) -> 'ProposedScheduler_2':
     default_time_quantum = config.get("default_time_quantum", 20)
     alpha = config.get("alpha", 0.5)
-    aging_factor = config.get("aging_factor", 1.0)
+    aging_factor = config.get("aging_factor", 0.1)
     return ProposedScheduler_2(default_time_quantum=default_time_quantum, alpha=alpha, aging_factor=aging_factor)
 
 class ProposedScheduler_2(SchedulerBase):
     def __init__(self, default_time_quantum: int = 20, alpha: float = 0.5, aging_factor: float = 1.0) -> None:
         if isinstance(default_time_quantum, bool) or not isinstance(default_time_quantum, int) or default_time_quantum <= 0:
             raise ValueError("Time quantum must be a positive integer.")
-        if isinstance(alpha, bool) or not isinstance(alpha, float) or alpha <= 0:
-            raise ValueError("Alpha must be a positive float.")
+        if (isinstance(alpha, bool) or not isinstance(alpha, (int, float))
+                or not isfinite(alpha) or not 0 < alpha <= 1):
+            raise ValueError("Alpha must be a finite number in (0, 1].")
+
+        if (isinstance(aging_factor, bool) or not isinstance(aging_factor, (int, float))
+                or not isfinite(aging_factor) or aging_factor < 0):
+            raise ValueError("Aging factor must be a finite non-negative number.")
 
         super().__init__()
         self.ready_que: list[TaskCycle] = []
@@ -134,7 +140,9 @@ class ProposedScheduler_2(SchedulerBase):
         remaining_time = self.estimate_remaining_time(task_name)
         ready_since_time = self.ready_since.get(task, None)
         if ready_since_time is not None:
-            waiting_time = max(0, self.current_time - ready_since_time)
+            # Time in this cycle's ready queue excludes time spent on the CPU.
+            executed_time = self.run_times.get(task_name, 0)
+            waiting_time = max(0, self.current_time - ready_since_time - executed_time)
             # Adjust priority based on waiting time (aging)
             priority = remaining_time / (1 + waiting_time * self.aging_factor)
         else:
