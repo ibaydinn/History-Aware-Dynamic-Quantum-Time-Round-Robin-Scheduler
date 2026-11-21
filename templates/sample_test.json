@@ -1,6 +1,7 @@
 {
-    "meta": {
-        "description": "This is a test task set for testing the scheduling algorithms."
+    "metadata": {
+        "name": "Burst-time variation",
+        "description": "Compare scheduler behavior when actual burst times increase and then return to their initial values."
     },
     "schedulers": [
         {
@@ -24,15 +25,22 @@
             "parameters": {}
         }
     ],
-    "test_cases" : [
+    "tests": [
         {
-            "name": "TestCase1",
+            "number": 1,
             "tasks": [
                 {
                     "name": "A",
                     "arrival_time": 0,
                     "burst_time": 5,
-                    "actual_burst_times": [5, 5, 8, 8, 5, 5],
+                    "actual_burst_times": [
+                        5,
+                        5,
+                        8,
+                        8,
+                        5,
+                        5
+                    ],
                     "period": 10,
                     "cycle_count": 6
                 },
@@ -40,7 +48,14 @@
                     "name": "B",
                     "arrival_time": 0,
                     "burst_time": 3,
-                    "actual_burst_times": [3, 3, 6, 6, 3, 3],
+                    "actual_burst_times": [
+                        3,
+                        3,
+                        6,
+                        6,
+                        3,
+                        3
+                    ],
                     "period": 8,
                     "cycle_count": 6
                 },
@@ -48,20 +63,34 @@
                     "name": "C",
                     "arrival_time": 5,
                     "burst_time": 4,
-                    "actual_burst_times": [2, 2, 4, 4, 2, 2],
+                    "actual_burst_times": [
+                        2,
+                        2,
+                        4,
+                        4,
+                        2,
+                        2
+                    ],
                     "period": 13,
                     "cycle_count": 6
                 }
             ]
         },
         {
-            "name": "TestCase2",
+            "number": 2,
             "tasks": [
                 {
                     "name": "D",
                     "arrival_time": 0,
                     "burst_time": 6,
-                    "actual_burst_times": [6, 6, 9, 9, 6, 6],
+                    "actual_burst_times": [
+                        6,
+                        6,
+                        9,
+                        9,
+                        6,
+                        6
+                    ],
                     "period": 12,
                     "cycle_count": 6
                 },
@@ -69,7 +98,14 @@
                     "name": "E",
                     "arrival_time": 0,
                     "burst_time": 4,
-                    "actual_burst_times": [4, 4, 7, 7, 4, 4],
+                    "actual_burst_times": [
+                        4,
+                        4,
+                        7,
+                        7,
+                        4,
+                        4
+                    ],
                     "period": 10,
                     "cycle_count": 6
                 }

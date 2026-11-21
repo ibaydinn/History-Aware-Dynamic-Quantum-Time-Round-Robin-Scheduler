@@ -2,30 +2,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 def create_task_from_json(json_data: dict) -> TaskDefinition:
-    """
-    Create a TaskDefinition instance from a JSON dictionary.
-
-    Args:
-        json_data (dict): A dictionary containing task definition data.
-
-    Returns:
-        TaskDefinition: An instance of TaskDefinition.
-    """
-    name = json_data.get("name")
-    arrival_time = json_data.get("arrival_time")
-    burst_time = json_data.get("burst_time")
-    actual_burst_times = json_data.get("actual_burst_times", [])
-    period = json_data.get("period", 0)
-    cycle_count = json_data.get("cycle_count", 1)
-
-    return TaskDefinition(
-        name=name,
-        arrival_time=arrival_time,
-        burst_time=burst_time,
-        actual_burst_times=actual_burst_times,
-        period=period,
-        cycle_count=cycle_count
-    )
+    """Construct a validated task, rejecting missing and unknown fields."""
+    if not isinstance(json_data, dict):
+        raise ValueError("Each task must be a JSON object.")
+    try:
+        return TaskDefinition(**json_data)
+    except TypeError as error:
+        raise ValueError(f"Invalid task fields: {error}") from error
 
 
 @dataclass

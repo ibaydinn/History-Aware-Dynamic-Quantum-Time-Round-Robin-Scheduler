@@ -1,5 +1,8 @@
 from metrics import calculate_metrics
-from scheduler_simulator import Simulator, TaskDefinition
+from scheduler_simulator import Simulator
+from scheduler_simulator.task_definition import create_task_from_json
+from pathlib import Path
+import re
 from algorithms import create_scheduler_from_config
 
 import json
@@ -12,65 +15,59 @@ def parse_arguments():
     return parser.parse_args()
 
 def test_runner(input_file: str, output_folder: str) -> None:
-
-    # Load test from the input JSON file
-    with open(input_file, "r") as f:
+    with open(input_file, "r", encoding="utf-8") as f:
         test_data = json.load(f)
+    if not isinstance(test_data, dict):
+        raise ValueError("Input must be a JSON object.")
+    for key in ("schedulers", "tests"):
+        if not isinstance(test_data.get(key), list) or not test_data[key]:
+            raise ValueError(f"{key} must be a non-empty list.")
 
-    # Create output folder if it doesn't exist
-    import os
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    metadata = test_data.get("metadata", {})
+    if not isinstance(metadata, dict):
+        raise ValueError("metadata must be a JSON object.")
 
-    # Create Scheduler instances from the loaded JSON data
-    schedulers = [create_scheduler_from_config(scheduler) for scheduler in test_data["schedulers"]]
+    schedulers = [create_scheduler_from_config(config) for config in test_data["schedulers"]]
+    # The index distinguishes configurations even if their names sanitize identically.
+    filenames = []
+    for index, (config, scheduler) in enumerate(zip(test_data["schedulers"], schedulers), 1):
+        label = config.get("name", scheduler.get_name())
+        slug = re.sub(r"[^A-Za-z0-9_-]+", "_", label).strip("_")[:80] or "scheduler"
+        filenames.append(f"{index:03d}_{slug}")
 
-    # Load test cases
-    test_cases = test_data["test_cases"]
+    tests = test_data["tests"]
+    numbers = set()
+    for index, test in enumerate(tests, 1):
+        if not isinstance(test, dict) or not isinstance(test.get("tasks"), list):
+            raise ValueError(f"Test {index} must contain a tasks list.")
+        number = test.get("number")
+        if type(number) is not int or number < 1 or number in numbers:
+            raise ValueError("Each test needs a unique positive integer number.")
+        numbers.add(number)
 
-    print(f"Loaded {len(test_cases)} test cases and {len(schedulers)} schedulers from {input_file}.")
-
-    # Run each test case with each scheduler
-    for test_case_number, test_case in enumerate(test_cases, start=1):
-
-        test_case_name = test_case["name"]
-        print(f"Running {test_case_number}/{len(test_cases)}: {test_case_name}")
-
-        # Create a subfolder for the test case results
-        test_case_output_folder = os.path.join(output_folder, test_case_name)
-        if not os.path.exists(test_case_output_folder):
-            os.makedirs(test_case_output_folder)
-        
-        # Create TaskDefinition instances from the test case data
-        task_definitions = [TaskDefinition(**task) for task in test_case["tasks"]]
-
-        # Create a Simulator instance and load the task definitions
+    print(f"Loaded {len(tests)} tests and {len(schedulers)} schedulers from {input_file}.")
+    for index, test in enumerate(tests, 1):
+        number = test["number"]
+        print(f"Running test {number} ({index}/{len(tests)})")
+        definitions = [create_task_from_json(task) for task in test["tasks"]]
         simulator = Simulator()
-        simulator.load_task_definitions(task_definitions)
-
-        for scheduler in schedulers:
+        simulator.load_task_definitions(definitions)
+        folder = Path(output_folder) / str(number)
+        folder.mkdir(parents=True, exist_ok=True)
+        for scheduler, filename in zip(schedulers, filenames):
             print(f"  Using scheduler: {scheduler.get_name()}")
-            
-            # Set the scheduler for the simulator
             simulator.set_scheduler(scheduler)
-
-            # Run the simulation
             simulator.run()
-
-            # Get results and metrics
             results = simulator.get_results()
             metrics_report = calculate_metrics(results)
+            # Keep topic and test identity with each output for later aggregation.
+            for report in (results, metrics_report):
+                report["metadata"] = metadata
+                report["test_number"] = number
+            for kind, data in (("results", results), ("metrics", metrics_report)):
+                with (folder / f"{filename}_{kind}.json").open("w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4, ensure_ascii=False, allow_nan=False)
 
-            # Save results and metrics to JSON files
-            scheduler_name = scheduler.get_name().replace(" ", "_").replace("(", "").replace(")", "").replace("=", "")
-            output_results_path = f"{output_folder}/{test_case['name']}/{scheduler_name}_results.json"
-            output_metrics_path = f"{output_folder}/{test_case['name']}/{scheduler_name}_metrics.json"
-
-            with open(output_results_path, "w") as f:
-                json.dump(results, f, indent=4)
-
-            with open(output_metrics_path, "w") as f:
-                json.dump(metrics_report, f, indent=4)
 
 def main():
     # Parse command-line arguments
