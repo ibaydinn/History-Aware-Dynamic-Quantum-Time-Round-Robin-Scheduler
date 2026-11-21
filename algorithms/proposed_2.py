@@ -43,7 +43,7 @@ class ProposedScheduler_2(SchedulerBase):
         return f"EMA-With-Age-1-Stage-Quantum Scheduler, alpha={self.alpha}, aging_factor={self.aging_factor}"
 
     def get_configuration(self) -> dict:
-        return {"default_time_quantum": self.default_time_quantum, "alpha": self.alpha}
+        return {"default_time_quantum": self.default_time_quantum, "alpha": self.alpha, "aging_factor": self.aging_factor}
 
     def remain_task_number(self) -> int:
         return len(self.ready_que)
