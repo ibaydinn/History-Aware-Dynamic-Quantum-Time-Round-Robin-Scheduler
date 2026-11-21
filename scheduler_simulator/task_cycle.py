@@ -44,7 +44,7 @@ class TaskCycle:
             raise ValueError("Execution cannot overlap a previous interval.")
 
         if isinstance(duration, bool) or not isinstance(duration, int) or duration <= 0:
-            raise ValueError("Execution duration must be a positive integer.")
+            raise ValueError("Execution duration must be a positive integer. Instead got: {}".format(duration))
         if self.is_completed():
             raise ValueError("Cannot execute a completed task cycle.")
         if self.remaining_burst_time < 0:

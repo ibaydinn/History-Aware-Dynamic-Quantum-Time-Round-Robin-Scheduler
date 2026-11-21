@@ -23,6 +23,14 @@
             "name": "EnhancedRR",
             "type": "enhanced_rr",
             "parameters": {}
+        },
+        {
+            "name": "ProposedScheduler_1",
+            "type": "proposed_1",
+            "parameters": {
+                "default_time_quantum": 10,
+                "alpha": 0.5
+            }
         }
     ],
     "tests": [
