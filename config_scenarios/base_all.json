@@ -1,0 +1,180 @@
+{
+    "metadata": {
+        "name": "Cyclic RR scheduler benchmark",
+        "description": "Seeded periodic task suites: target load, burst jitter, synchronous/asynchronous releases, workload transitions, and aging stress."
+    },
+    "seed": 20261121,
+    "schedulers": [
+        {
+            "name": "RoundRobin",
+            "type": "round_robin",
+            "parameters": {
+                "time_quantum": 10
+            }
+        },
+        {
+            "name": "HADQRR",
+            "type": "hadqrr",
+            "parameters": {
+                "default_time_quantum": 10,
+                "history_length": 2
+            }
+        },
+        {
+            "name": "EnhancedRR",
+            "type": "enhanced_rr",
+            "parameters": {}
+        },
+        {
+            "name": "ProposedScheduler_1",
+            "type": "proposed_1",
+            "parameters": {
+                "default_time_quantum": 10,
+                "alpha": 0.5
+            }
+        }
+    ],
+    "defaults": {
+        "task_count": 8,
+        "cycle_count": 30,
+        "period_mode": "random",
+        "period_min": 80,
+        "period_max": 240,
+        "period_step": 20,
+        "utilization_tolerance_percent": 0.5,
+        "arrival_mode": "zero",
+        "simulation_duration": 2400,
+        "min_burst": 5,
+        "random_burst_min": 5,
+        "random_burst_max": 30
+    },
+    "scenarios": [
+        {
+            "id": "util75_fixed",
+            "profile": "utilization",
+            "utilization_percent": 75,
+            "repeats": 100,
+            "workload_group": "util75"
+        },
+        {
+            "id": "util100_fixed",
+            "profile": "utilization",
+            "utilization_percent": 100,
+            "repeats": 100,
+            "workload_group": "util100"
+        },
+        {
+            "id": "util125_fixed",
+            "profile": "utilization",
+            "utilization_percent": 125,
+            "repeats": 100,
+            "workload_group": "util125"
+        },
+        {
+            "id": "util75_jitter",
+            "profile": "utilization",
+            "utilization_percent": 75,
+            "jitter_percent": 20,
+            "repeats": 100,
+            "workload_group": "util75"
+        },
+        {
+            "id": "util100_jitter",
+            "profile": "utilization",
+            "utilization_percent": 100,
+            "jitter_percent": 20,
+            "repeats": 100,
+            "workload_group": "util100"
+        },
+        {
+            "id": "util125_jitter",
+            "profile": "utilization",
+            "utilization_percent": 125,
+            "jitter_percent": 20,
+            "repeats": 100,
+            "workload_group": "util125"
+        },
+        {
+            "id": "random_sync",
+            "profile": "random",
+            "arrival_mode": "zero",
+            "random_burst_min": 5,
+            "random_burst_max": 30,
+            "repeats": 100,
+            "workload_group": "random_same_workload"
+        },
+        {
+            "id": "random_async",
+            "profile": "random",
+            "arrival_mode": "random",
+            "random_burst_min": 5,
+            "random_burst_max": 30,
+            "repeats": 100,
+            "workload_group": "random_same_workload"
+        },
+        {
+            "id": "harmonic",
+            "profile": "utilization",
+            "utilization_percent": 100,
+            "period_mode": "harmonic",
+            "base_period": 20,
+            "repeats": 100
+        },
+        {
+            "id": "nonharmonic",
+            "profile": "utilization",
+            "utilization_percent": 100,
+            "period_mode": "prime",
+            "period_min": 83,
+            "period_max": 239,
+            "repeats": 100
+        },
+        {
+            "id": "mixed_short_long",
+            "profile": "utilization",
+            "utilization_percent": 100,
+            "weight_distribution": "bimodal",
+            "short_fraction": 0.75,
+            "long_weight": 10,
+            "repeats": 100
+        },
+        {
+            "id": "bursty_release",
+            "profile": "utilization",
+            "utilization_percent": 125,
+            "arrival_mode": "clustered",
+            "cluster_width": 3,
+            "repeats": 100
+        },
+        {
+            "id": "load_transition",
+            "profile": "utilization",
+            "utilization_percent": 75,
+            "cycle_count": 40,
+            "load_phases": [
+                {
+                    "until": 700,
+                    "multiplier": 1.0
+                },
+                {
+                    "until": 1400,
+                    "multiplier": 1.67
+                },
+                {
+                    "multiplier": 1.0
+                }
+            ],
+            "repeats": 100
+        },
+        {
+            "id": "aging_stress",
+            "profile": "utilization",
+            "utilization_percent": 125,
+            "weight_distribution": "bimodal",
+            "short_fraction": 0.75,
+            "long_weight": 15,
+            "arrival_mode": "random",
+            "repeats": 100
+        }
+    ]
+}

@@ -86,7 +86,7 @@ class ProposedScheduler_1(SchedulerBase):
 
         # Calculate the average burst time of the tasks in the ready queue
         burst_times = [self.estimate_remaining_time(task.task_name) for task in self.ready_que]
-        print(f"Estimated burst times for ready queue: {burst_times}")
+        
         quantum = self.calculate_mean(burst_times)
         if quantum <= 0:
             pass
